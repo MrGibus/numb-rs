@@ -1,6 +1,6 @@
-use numb_rs;
+use numb_rs as nr;
 
 #[test]
 fn assembly_function_check() {
-    numb_rs::nop();
+    nr::nop();
 }

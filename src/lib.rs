@@ -2,12 +2,12 @@
 #![feature(asm)]
 #![allow(dead_code)]
 
+
 pub fn nop() {
     unsafe {
         asm!("nop");
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -23,5 +23,3 @@ mod tests {
         nop();
     }
 }
-
-

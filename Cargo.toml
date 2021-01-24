@@ -1,9 +1,9 @@
 [package]
 name = "numb_rs"
 version = "0.0.0"
-authors = ["MrGibus <arcane2.0@gmail.com>"]
+authors = ["Ben Anderson: (MrGibus) <arcane2.0@gmail.com>"]
 edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
+repository = "https://github.com/MrGibus/numb_rs"
+readme = "README.MD"
+description = "An experimental numeric package written entirely in rust"
+license = "MIT OR Apache-2.0"
