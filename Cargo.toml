@@ -1,7 +1,7 @@
 [package]
 name = "numb_rs"
 version = "0.0.0"
-authors = ["Ben Anderson: (MrGibus) <arcane2.0@gmail.com>"]
+authors = ["MrGibus <arcane2.0@gmail.com>"]
 edition = "2018"
 repository = "https://github.com/MrGibus/numb_rs"
 readme = "README.MD"
