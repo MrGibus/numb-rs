@@ -1,4 +1,4 @@
-# numb-rs
+# numb_rs
 An experimental package for numerical operations written entirely in rust.
 
 **important:** This package is experimental at this stage and should not be used for any purpose other than 
