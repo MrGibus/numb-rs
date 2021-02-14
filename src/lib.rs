@@ -1071,6 +1071,84 @@ impl ApproxEq<MatrixS<f64>> for MatrixS<f64> {
     }
 }
 
+impl ApproxEq<Matrix<f64>> for MatrixS<f64> {
+    type Check = f64;
+
+    fn approx_eq(&self, other: &Matrix<f64>, tolerance: Self::Check) -> bool {
+        if self.n != other.n || self.n != other.m {
+            return false
+        }
+
+        for i in 0..self.n {
+            for j in 0..i {
+                if (self[[i, j]] - other[[i, j]]).abs() > tolerance {
+                    return false
+                }
+            }
+        }
+        true
+    }
+
+    fn assert_approx_eq(&self, other: &Matrix<f64>, tolerance: Self::Check){
+        if self.n != other.n || self.n != other.m {
+            panic!(r#"assertion failed: Dimension Inequality
+    left  n: `{:?}`
+    right n: `{:?}`"#, self.n, other.n)
+        }
+
+        for i in 0..self.n {
+            for j in 0..i {
+                let delta = (self[[i, j]] - other[[i, j]]).abs();
+                if delta > tolerance {
+                    panic!(r#"assertion failed at element [{:?}, {:?}]: ± `{:?}`
+    left: `{:?}`
+    right: `{:?}`
+    delta = `{:?}`"#, i, j, tolerance, self[[i, j]], other[[i, j]], delta);
+                }
+            }
+        }
+    }
+}
+
+impl ApproxEq<MatrixS<f64>> for Matrix<f64> {
+    type Check = f64;
+
+    fn approx_eq(&self, other: &MatrixS<f64>, tolerance: Self::Check) -> bool {
+        if self.n != other.n || self.m != other.n {
+            return false
+        }
+
+        for i in 0..self.n {
+            for j in 0..i {
+                if (self[[i, j]] - other[[i, j]]).abs() > tolerance {
+                    return false
+                }
+            }
+        }
+        true
+    }
+
+    fn assert_approx_eq(&self, other: &MatrixS<f64>, tolerance: Self::Check){
+        if self.n != other.n || self.m != other.n {
+            panic!(r#"assertion failed: Dimension Inequality
+    left  n: `{:?}`
+    right n: `{:?}`"#, self.n, other.n)
+        }
+
+        for i in 0..self.n {
+            for j in 0..i {
+                let delta = (self[[i, j]] - other[[i, j]]).abs();
+                if delta > tolerance {
+                    panic!(r#"assertion failed at element [{:?}, {:?}]: ± `{:?}`
+    left: `{:?}`
+    right: `{:?}`
+    delta = `{:?}`"#, i, j, tolerance, self[[i, j]], other[[i, j]], delta);
+                }
+            }
+        }
+    }
+}
+
 //◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼ # TESTING ◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼
 #[cfg(test)]
 mod tests {
