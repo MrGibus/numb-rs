@@ -72,8 +72,8 @@ impl<T> Matrix<T> {
         T: std::convert::From<u32>,
     {
         let mut v: Vec<T> = Vec::new();
-        for (i, _) in (0..size).enumerate() {
-            for (j, _) in (0..size).enumerate() {
+        for i in 0..size {
+            for j in 0..size{
                 if i == j {
                     v.push(1.into());
                 } else {
@@ -119,7 +119,30 @@ impl<T> Matrix<T> {
     }
 }
 
-impl<T> MatrixVariant for Matrix<T> {
+impl<T: Copy + MulAssign + AddAssign> RowOps<T> for Matrix<T>{
+    /// Scales all elements in a given row
+    fn scale_row(&mut self, i: usize, scale: T){
+        for j in 0..self.n {
+            self[[i, j]] *= scale;
+        }
+    }
+
+    /// adds to all elements in a given row
+    fn increase_row(&mut self, i: usize, value: T){
+        for (j, _) in (0..self.n).enumerate() {
+            self[[i, j]] += value;
+        }
+    }
+
+    /// swaps the pointer of two rows
+    fn swap_rows(&mut self, a: usize, b:usize) {
+        for (j, _) in (0..self.n).enumerate() {
+            self.swap([a, j], [b, j])
+        }  // 4.1844 ns
+    }
+}
+
+impl<T> MatrixVariant<T> for Matrix<T> {
     type TView = ();
 
     fn len(&self) -> usize {
@@ -136,6 +159,34 @@ impl<T> MatrixVariant for Matrix<T> {
 
     fn t(&self) -> Self::TView {
         unimplemented!()
+    }
+}
+
+impl<T> Concatenate<Matrix<T>, T> for Matrix<T> {
+    fn concatenate(self, other: Matrix<T>) -> Result<Matrix<T>, MatrixError> {
+        // check that matrices are compatible
+        match self.m == other.m {
+            true => {
+                // create a matrix with a capacity
+                let mut new: Matrix<T> = Matrix::with_capacity(
+                    self.data.capacity() + other.data.capacity()
+                );
+                new.n = self.n + other.n;
+                new.m = self.m;
+                // TODO: Vectorise this loop
+
+                // if we think of appending to a vector instead of a 2d array we might consider
+                // that we wish to add a row starting at 'i' in the vector and push values
+                // onto the new array
+
+                for i in 0..self.m {
+
+                }
+
+                unimplemented!()
+            }
+            false => Err(MatrixError::DimensionError),
+        }
     }
 }
 
@@ -180,9 +231,7 @@ pub struct MatrixIterator<'a, T> {
     j: usize,
 }
 
-impl<'a, T> IntoIterator for &'a Matrix<T>
-where
-    T: Copy,
+impl<'a, T: Copy> IntoIterator for &'a Matrix<T>
 {
     type Item = (T, [usize; 2]);
     type IntoIter = MatrixIterator<'a, T>;
@@ -196,9 +245,7 @@ where
     }
 }
 
-impl<'a, T> Iterator for MatrixIterator<'a, T>
-where
-    T: Copy,
+impl<'a, T: Copy> Iterator for MatrixIterator<'a, T>
 {
     type Item = (T, [usize; 2]);
 
@@ -371,7 +418,7 @@ where
 
     fn mul(self, other: Self) -> Self::Output {
         if self.n != other.m {
-            Err(MatrixError::DimensionError(self.n, other.m))
+            Err(MatrixError::DimensionError)
         } else {
             let mut out: Matrix<T> = Matrix::with_capacity(self.m * other.n);
             out.m = self.m;
@@ -402,7 +449,7 @@ where
 
     fn mul(self, other: MatrixS<T>) -> Self::Output {
         if self.n != other.n {
-            Err(MatrixError::DimensionError(self.n, other.n))
+            Err(MatrixError::DimensionError)
         } else {
             let mut out: Matrix<T> = Matrix::with_capacity(self.m * other.n);
             out.m = self.m;
@@ -436,7 +483,7 @@ where
 
     fn mul(self, other: Self) -> Self::Output {
         if self.n != other.n {
-            Err(MatrixError::DimensionError(self.n, other.n))
+            Err(MatrixError::DimensionError)
         } else {
             let mut out: Matrix<T> = Matrix::with_capacity(self.n * self.n);
             out.m = self.n;
@@ -467,7 +514,7 @@ where
 
     fn mul(self, other: Matrix<T>) -> Self::Output {
         if self.n != other.m {
-            Err(MatrixError::DimensionError(self.n, other.m))
+            Err(MatrixError::DimensionError)
         } else {
             let mut out: Matrix<T> = Matrix::with_capacity(self.n * other.n);
             out.m = self.n;
@@ -498,7 +545,7 @@ where
 
     fn mul(self, other: MatrixT<'_, T>) -> Self::Output {
         if self.n != *other.m {
-            Err(MatrixError::DimensionError(self.n, *other.m))
+            Err(MatrixError::DimensionError)
         } else {
             let mut out: Matrix<T> = Matrix::with_capacity(self.m * other.n);
             out.m = self.m;
@@ -529,7 +576,7 @@ where
 
     fn mul(self, other: Matrix<T>) -> Self::Output {
         if *self.n != other.m {
-            Err(MatrixError::DimensionError(*self.n, other.m))
+            Err(MatrixError::DimensionError)
         } else {
             let mut out: Matrix<T> = Matrix::with_capacity(self.m * other.n);
             out.m = *self.m;
@@ -934,7 +981,8 @@ macro_rules! mat {
 /// # example:
 /// ```
 /// # #[macro_use]
-/// # use numb_rs::{mat, symmat, Matrix, MatrixS};
+/// # use numb_rs::*;
+///
 /// # fn main() {
 /// let a = symmat![
 /// 0;
@@ -1396,6 +1444,23 @@ mod tests {
     }
 
     #[test]
+    fn row_swap() {
+        let mut a: Matrix<i32> = mat![1,2,3,4; 5,6,7,8; 9,10,11,12];
+        a.swap_rows(0, 2);
+        let b: Matrix<i32> = mat![9,10,11,12; 5,6,7,8; 1,2,3,4];
+        assert_eq!(a, b)
+    }
+
+    #[test]
+    fn concatenate() {
+        let a = mat![1, 2; 3, 4];
+        let b = mat![5; 6];
+        let ans = mat![1, 2, 5; 3, 4, 6];
+
+        assert_eq!(a.concatenate(b).unwrap(), ans);
+    }
+
+    #[test]
     fn transpose() {
         let mut a: Matrix<u32> = mat![1,2,3;4,5,6;7,8,9];
         a.transpose();
@@ -1532,6 +1597,24 @@ mod tests {
         }
 
         #[test]
+        fn row_mul() {
+            let mut x = mat![0, 4; 8, 10];
+
+            x.scale_row(1, 2);
+
+            assert_eq!(mat![0, 4; 16, 20], x)
+        }
+
+        #[test]
+        fn row_add() {
+            let mut x = mat![0, 4; 8, 10];
+
+            x.increase_row(1, 20);
+
+            assert_eq!(mat![0, 4; 28, 30], x)
+        }
+
+        #[test]
         fn matrix_mul() {
             let a = mat! [ 1, 3, 5; 7, 4, 6];
             let b = mat![4, 5; 2, 8; 4, 1];
@@ -1607,7 +1690,7 @@ mod tests {
             let b = mat![2, 3; 4, 5];
             let c = a * b;
             assert!(c.is_err());
-            assert_eq!(c.unwrap_err(), MatrixError::DimensionError(3, 2))
+            assert_eq!(c.unwrap_err(), MatrixError::DimensionError)
         }
     }
 }

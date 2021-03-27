@@ -1,21 +1,24 @@
 //! General Matrix Traits, Errors, and functions and implementations.
 
+use crate::Matrix;
+use std::fmt::Debug;
+use std::ops::{MulAssign, AddAssign};
+
 //◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼ # ERRORS  ◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼
 /// an error type specific to matrices
 #[derive(Debug, PartialEq, Eq)]
 pub enum MatrixError {
     /// called when a matrix multiplication is invalid due to incompatible dimensions
     /// the tuple represents the left and right sizes
-    DimensionError(usize, usize),
+    DimensionError,
     /// Sigularity errors
     Singularity,
 }
 
 
 //◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼ # TRAITS ◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼
-
 /// The Matrix trait to implement expected functionality
-pub trait MatrixVariant: std::ops::Index<[usize; 2]> + std::ops::IndexMut<[usize; 2]> {
+pub trait MatrixVariant<T>: std::ops::Index<[usize; 2]> + std::ops::IndexMut<[usize; 2]> {
     /// Transpose View Type
     type TView;
 
@@ -32,21 +35,19 @@ pub trait MatrixVariant: std::ops::Index<[usize; 2]> + std::ops::IndexMut<[usize
     fn t(&self) -> Self::TView;
 }
 
+///
+pub trait RowOps<T: Copy + MulAssign + AddAssign> {
+    /// Scales all elements in a given row
+    fn scale_row(&mut self, i: usize, scale: T);
 
-//◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼ # DENSE ◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼
+    /// adds to all elements in a given row
+    fn increase_row(&mut self, i: usize, value: T);
 
-/// a matrix is a vec with dimensional properties (m x n)
-/// m the vertical length (rows)
-/// n represents the horizontal length (columns)
-/// it is stored as a row-major vector
-/// The matrix uses zero referencing.
-#[derive(Debug, Clone)]
-pub struct Dense<T> {
-    /// a vector containing the Matrix data
-    pub data: Vec<T>,
-    /// number of rows
-    pub m: usize,
-    /// number of columns
-    pub n: usize,
+    /// swaps two rows
+    fn swap_rows(&mut self, a: usize, b:usize);
 }
 
+pub trait Concatenate<M: MatrixVariant<T>, T> {
+    /// merges two matrices into a given matrix
+    fn concatenate(self, other: M) -> Result<Matrix<T>, MatrixError>;
+}
