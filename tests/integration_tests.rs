@@ -1,4 +1,4 @@
-
+#![allow(unused_attributes)]
 #[macro_use]
 use numb_rs::*;
 

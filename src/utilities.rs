@@ -66,12 +66,12 @@ impl Zero for i128 {
 }
 impl Zero for f32 {
     fn zero() -> Self {
-        0.
+        0f32
     }
 }
 impl Zero for f64 {
     fn zero() -> Self {
-        0.
+        0f64
     }
 }
 
@@ -133,3 +133,15 @@ impl ApproxEq<f32> for f32 {
         }
     }
 }
+
+pub trait Signed{
+    fn neg() -> Self;
+}
+
+impl Signed for i8{ fn neg() -> Self {-1}}
+impl Signed for i16{ fn neg() -> Self {-1}}
+impl Signed for i32{ fn neg() -> Self {-1}}
+impl Signed for i64{ fn neg() -> Self {-1}}
+impl Signed for i128{ fn neg() -> Self {-1}}
+impl Signed for f32{ fn neg() -> Self {-1.}}
+impl Signed for f64{ fn neg() -> Self {-1.}}

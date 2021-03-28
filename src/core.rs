@@ -119,7 +119,7 @@ impl<T> Matrix<T> {
     }
 }
 
-impl<T: Copy + MulAssign + AddAssign> RowOps<T> for Matrix<T>{
+impl<T: Copy + MulAssign + AddAssign + Mul<Output=T>> RowOps<T> for Matrix<T>{
     /// Scales all elements in a given row
     fn scale_row(&mut self, i: usize, scale: T){
         for j in 0..self.n {
@@ -127,10 +127,11 @@ impl<T: Copy + MulAssign + AddAssign> RowOps<T> for Matrix<T>{
         }
     }
 
-    /// adds to all elements in a given row
-    fn increase_row(&mut self, i: usize, value: T){
-        for (j, _) in (0..self.n).enumerate() {
-            self[[i, j]] += value;
+    /// adds one row to another with a scaling factor
+    fn add_rows(&mut self, base: usize, row_to_add: usize, scale: T){
+        for j in 0..self.n {
+            let x = self[[row_to_add, j]] * scale;
+            self[[base, j]] += x;
         }
     }
 
@@ -162,7 +163,7 @@ impl<T> MatrixVariant<T> for Matrix<T> {
     }
 }
 
-impl<T> Concatenate<Matrix<T>, T> for Matrix<T> {
+impl<T: Copy> Concatenate<Matrix<T>, T> for Matrix<T> {
     fn concatenate(self, other: Matrix<T>) -> Result<Matrix<T>, MatrixError> {
         // check that matrices are compatible
         match self.m == other.m {
@@ -180,12 +181,17 @@ impl<T> Concatenate<Matrix<T>, T> for Matrix<T> {
                 // onto the new array
 
                 for i in 0..self.m {
-
+                    for j in 0..self.n {
+                        new.data.push(self[[i, j]]);
+                    }
+                    for j in 0..other.n{
+                        new.data.push(other[[i, j]])
+                    }
                 }
 
-                unimplemented!()
+                Ok(new)
             }
-            false => Err(MatrixError::DimensionError),
+            false => Err(MatrixError::Incompatibility),
         }
     }
 }
@@ -250,7 +256,6 @@ impl<'a, T: Copy> Iterator for MatrixIterator<'a, T>
     type Item = (T, [usize; 2]);
 
     #[inline]
-    //REVIEW can this be done without conditionals? via mods% or something? - Seems a bit expensive
     fn next(&mut self) -> Option<Self::Item> {
         let i = self.i;
         let j = self.j;
@@ -418,7 +423,7 @@ where
 
     fn mul(self, other: Self) -> Self::Output {
         if self.n != other.m {
-            Err(MatrixError::DimensionError)
+            Err(MatrixError::Incompatibility)
         } else {
             let mut out: Matrix<T> = Matrix::with_capacity(self.m * other.n);
             out.m = self.m;
@@ -449,7 +454,7 @@ where
 
     fn mul(self, other: MatrixS<T>) -> Self::Output {
         if self.n != other.n {
-            Err(MatrixError::DimensionError)
+            Err(MatrixError::Incompatibility)
         } else {
             let mut out: Matrix<T> = Matrix::with_capacity(self.m * other.n);
             out.m = self.m;
@@ -483,7 +488,7 @@ where
 
     fn mul(self, other: Self) -> Self::Output {
         if self.n != other.n {
-            Err(MatrixError::DimensionError)
+            Err(MatrixError::Incompatibility)
         } else {
             let mut out: Matrix<T> = Matrix::with_capacity(self.n * self.n);
             out.m = self.n;
@@ -514,7 +519,7 @@ where
 
     fn mul(self, other: Matrix<T>) -> Self::Output {
         if self.n != other.m {
-            Err(MatrixError::DimensionError)
+            Err(MatrixError::Incompatibility)
         } else {
             let mut out: Matrix<T> = Matrix::with_capacity(self.n * other.n);
             out.m = self.n;
@@ -545,7 +550,7 @@ where
 
     fn mul(self, other: MatrixT<'_, T>) -> Self::Output {
         if self.n != *other.m {
-            Err(MatrixError::DimensionError)
+            Err(MatrixError::Incompatibility)
         } else {
             let mut out: Matrix<T> = Matrix::with_capacity(self.m * other.n);
             out.m = self.m;
@@ -576,7 +581,7 @@ where
 
     fn mul(self, other: Matrix<T>) -> Self::Output {
         if *self.n != other.m {
-            Err(MatrixError::DimensionError)
+            Err(MatrixError::Incompatibility)
         } else {
             let mut out: Matrix<T> = Matrix::with_capacity(self.m * other.n);
             out.m = *self.m;
@@ -1458,6 +1463,12 @@ mod tests {
         let ans = mat![1, 2, 5; 3, 4, 6];
 
         assert_eq!(a.concatenate(b).unwrap(), ans);
+
+        let a = mat![1, 5; 2, 6; 3, 7; 4, 8];
+        let b = mat![9, 13; 10, 14; 11, 15; 12, 16];
+        let ans = mat![1, 5, 9, 13; 2, 6, 10, 14; 3, 7, 11, 15; 4, 8, 12, 16];
+
+        assert_eq!(a.concatenate(b).unwrap(), ans);
     }
 
     #[test]
@@ -1607,11 +1618,11 @@ mod tests {
 
         #[test]
         fn row_add() {
-            let mut x = mat![0, 4; 8, 10];
+            let mut x = mat![1, 2; 8, 10];
 
-            x.increase_row(1, 20);
+            x.add_rows(1, 0, 2);
 
-            assert_eq!(mat![0, 4; 28, 30], x)
+            assert_eq!(mat![1, 2; 10, 14], x)
         }
 
         #[test]
@@ -1690,7 +1701,7 @@ mod tests {
             let b = mat![2, 3; 4, 5];
             let c = a * b;
             assert!(c.is_err());
-            assert_eq!(c.unwrap_err(), MatrixError::DimensionError)
+            assert_eq!(c.unwrap_err(), MatrixError::Incompatibility)
         }
     }
 }

@@ -1,4 +1,6 @@
 //! numb_rs is an experimental matrix library
+//! Progress > Organisation > Performance
+//!
 #![allow(unused_macros)]
 
 #[macro_use]
