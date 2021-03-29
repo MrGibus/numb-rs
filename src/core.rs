@@ -1,4 +1,9 @@
 //! Core functionality
+//!
+//! TODO: Reimplement slices such that:
+//! M[i] yields row i
+//! M[i][j] yields an element
+//! M.iter_col(i) yields a column iterator
 
 //◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼ # PREAMBLE ◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼
 

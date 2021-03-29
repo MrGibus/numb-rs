@@ -52,6 +52,9 @@ pub trait RowOps<T: Copy + MulAssign + AddAssign + Mul<Output=T>> {
 
     /// adds one row to another with a scaling factor such that each element
     /// in the row becomes: base + row_to_add * scale
+    /// TODO: Create a new function for row reduction
+    /// The new function will assign values to 0f64 directly under the row to add
+    /// 
     fn add_rows(&mut self, base: usize, row_to_add: usize, scale: T);
 
     /// swaps two rows
