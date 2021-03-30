@@ -1,5 +1,3 @@
-#[macro_use(mat)]
-use crate::core::*;
 use crate::{MatrixVariant, Concatenate, MatrixError, RowOps};
 
 
@@ -16,18 +14,18 @@ pub fn solve_dense<M: MatrixVariant<f64> + Concatenate<M, f64>>(a: M, b: M)
     // Augmented Matrix A|B
     let mut aug = a.concatenate(b)?;
 
-    let [m, n] = aug.size();
+    let [nrows, ncols] = aug.size();
 
     let mut pivot: Option<usize> = None;
 
     // Forward shifting
-    for i in 0..m {
+    for i in 0..nrows {
         // Compare current pivot with others below
         let mut max: f64 = aug[[i, i]].abs();
-        for j in i+1..m{
-            let x = aug[[j, i]].abs();
-            if x > max + f64::EPSILON {
-                max = x;
+        for j in i+1..nrows {
+            let check = aug[[j, i]].abs();
+            if check > max + f64::EPSILON {
+                max = check;
                 pivot = Some(j);
             }
         }
@@ -48,14 +46,14 @@ pub fn solve_dense<M: MatrixVariant<f64> + Concatenate<M, f64>>(a: M, b: M)
             return Err(MatrixError::NumericInstability)
         }
 
-        for j in i+1..m{
+        for j in i+1..nrows {
             let scale = aug[[j, i]] / aug[[i, i]];
             aug.add_rows(j, i, -scale);
         }
     }
 
     // Back substitution
-    for i in (0..m).rev() {
+    for i in (0..nrows).rev() {
         for j in (0..i).rev() {
             let scale = aug[[j, i]] / aug[[i, i]];
             aug.add_rows(j, i, -scale);
@@ -63,10 +61,10 @@ pub fn solve_dense<M: MatrixVariant<f64> + Concatenate<M, f64>>(a: M, b: M)
     }
 
     // Collection (more efficient then scaling all items in row)
-    let mut out: Vec<f64> = Vec::with_capacity(n);
+    let mut out: Vec<f64> = Vec::with_capacity(ncols);
 
-    for i in 0..m {
-        let x = aug[[i, m]] / aug[[i, i]];
+    for i in 0..nrows {
+        let x = aug[[i, nrows]] / aug[[i, i]];
         out.push(x);
     }
 
@@ -75,7 +73,6 @@ pub fn solve_dense<M: MatrixVariant<f64> + Concatenate<M, f64>>(a: M, b: M)
 
 #[cfg(test)]
 mod tests {
-    #[macro_use(mat)]
     use crate::core::*;
     use super::*;
     use crate::ApproxEq;

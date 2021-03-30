@@ -96,7 +96,7 @@ impl ApproxEq<f64> for f64 {
     type Check = f64;
 
     fn approx_eq(&self, other: &f64, tolerance: Self::Check) -> bool {
-        !((*self - *other).abs() > tolerance)
+        (*self - *other).abs() <= tolerance
     }
 
     fn assert_approx_eq(&self, other: &f64, tolerance: Self::Check) {
@@ -117,7 +117,7 @@ impl ApproxEq<f32> for f32 {
     type Check = f32;
 
     fn approx_eq(&self, other: &f32, tolerance: Self::Check) -> bool {
-        !((*self - *other).abs() > tolerance)
+        (*self - *other).abs() <= tolerance
     }
 
     fn assert_approx_eq(&self, other: &f32, tolerance: Self::Check) {

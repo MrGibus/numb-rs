@@ -1,5 +1,7 @@
 //! Implements a fraction type for integers
 
+#![allow(dead_code)]
+
 pub struct Fraction<T> {
     numerator: T,
     denominator: T,
