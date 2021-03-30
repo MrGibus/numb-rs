@@ -22,6 +22,5 @@ mod tests {
         let half = frac!(1, 2);
         assert_eq!(half.numerator, HALF.numerator);
         assert_eq!(half.denominator, HALF.denominator);
-
     }
 }
