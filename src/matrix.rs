@@ -1,21 +1,34 @@
 //! General Matrix Traits, Errors, and functions and implementations.
 
+use crate::Matrix;
+use std::fmt::Debug;
+use std::ops::{MulAssign, AddAssign, Mul};
+
 //◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼ # ERRORS  ◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼
 /// an error type specific to matrices
 #[derive(Debug, PartialEq, Eq)]
 pub enum MatrixError {
+    /// Error with message
+    Error(String),
     /// called when a matrix multiplication is invalid due to incompatible dimensions
     /// the tuple represents the left and right sizes
-    DimensionError(usize, usize),
-    /// Sigularity errors
+    Incompatibility,
+    /// Sigularity errors occur when a matrix cannot be inverted,
+    /// often encountered when using LU Decomposition in FEA
     Singularity,
+    /// When many solutions exist and the answer is required in parametric form
+    /// More unknowns exist than equations AKA a dependent solution
+    NonUniqueSolution,
+    /// Inconsistent: When the right hand side is zero and left hand side is not
+    Inconsistent,
+    /// Numeric Instability, where rounding of floating point numbers may result in incorrect answers
+    NumericInstability,
 }
 
 
 //◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼ # TRAITS ◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼
-
 /// The Matrix trait to implement expected functionality
-pub trait MatrixVariant: std::ops::Index<[usize; 2]> + std::ops::IndexMut<[usize; 2]> {
+pub trait MatrixVariant<T>: std::ops::Index<[usize; 2]> + std::ops::IndexMut<[usize; 2]> {
     /// Transpose View Type
     type TView;
 
@@ -32,21 +45,23 @@ pub trait MatrixVariant: std::ops::Index<[usize; 2]> + std::ops::IndexMut<[usize
     fn t(&self) -> Self::TView;
 }
 
+/// Required for linear algebra
+pub trait RowOps<T: Copy + MulAssign + AddAssign + Mul<Output=T>> {
+    /// Scales all elements in a given row
+    fn scale_row(&mut self, i: usize, scale: T);
 
-//◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼ # DENSE ◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼
+    /// adds one row to another with a scaling factor such that each element
+    /// in the row becomes: base + row_to_add * scale
+    /// TODO: Create a new function for row reduction
+    /// The new function will assign values to 0f64 directly under the row to add
+    /// 
+    fn add_rows(&mut self, base: usize, row_to_add: usize, scale: T);
 
-/// a matrix is a vec with dimensional properties (m x n)
-/// m the vertical length (rows)
-/// n represents the horizontal length (columns)
-/// it is stored as a row-major vector
-/// The matrix uses zero referencing.
-#[derive(Debug, Clone)]
-pub struct Dense<T> {
-    /// a vector containing the Matrix data
-    pub data: Vec<T>,
-    /// number of rows
-    pub m: usize,
-    /// number of columns
-    pub n: usize,
+    /// swaps two rows
+    fn swap_rows(&mut self, a: usize, b:usize);
 }
 
+pub trait Concatenate<M: MatrixVariant<T>, T: Copy> {
+    /// merges two matrices into a new matrix
+    fn concatenate(self, other: M) -> Result<Matrix<T>, MatrixError>;
+}

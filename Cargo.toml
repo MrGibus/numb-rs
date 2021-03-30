@@ -9,3 +9,10 @@ description = "An experimental numeric package written entirely in rust"
 license = "MIT OR Apache-2.0"
 
 [workspace]
+
+[dev-dependencies]
+criterion = "0.3.4"
+
+[[bench]]
+name = "matrix_benchmark"
+harness = false
