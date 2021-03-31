@@ -1,11 +1,12 @@
 use crate::{MatrixVariant, Concatenate, MatrixError, RowOps};
+use std::fmt::Display;
 
 
 /// TODO: Cholesky decomposition for positive definite matrices
 
 /// Gauss-Jordan Elimination to solve a system of linear equations where Ax=B
 /// Applies partial pivoting for numerical stability
-pub fn solve_dense<M: MatrixVariant<f64> + Concatenate<M, f64>>(a: M, b: M)
+pub fn solve_dense<M: MatrixVariant<f64> + Concatenate<O, f64>, O: MatrixVariant<f64>>(a: M, b: O)
     -> Result<Vec<f64>, MatrixError>{
     if b.size()[1] != 1{
         return Err(MatrixError::Incompatibility)
@@ -143,5 +144,30 @@ mod tests {
 
         let ans = solve_dense(a, b);
         assert!(ans.is_err());
+    }
+
+    #[test]
+    fn dense_solver_sym() {
+        let a = symmat![
+            1.;
+            -3., 4.;
+            11., -1., 2.
+        ];
+
+        let b = mat![7.; 3.; 9.];
+
+        let x = vec![0.78089, 1.58508, 0.99767];
+
+        let ans = solve_dense(a, b).unwrap();
+
+       if x.iter().enumerate()
+            .any(|(i, x)| !x.approx_eq(&ans[i], 0.001)) {
+            panic!(
+                r#"assertion failed: `(left ~= right) ± `{:?}`
+    left: `{:?}`
+    right: `{:?}`"#,
+                0.001, x, ans
+            )
+       }
     }
 }

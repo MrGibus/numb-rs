@@ -23,7 +23,8 @@ use crate::matrix::*;
 /// it is stored as a row-major vector in line with C standards
 /// The matrix uses zero referencing.
 /// This method is preferable over nested vectors as during operations such as matrix transposition
-/// the vector does not change length.
+/// the vector does not change length. // REVIEW: if a vector is a continious block of memory? does
+/// it matter?
 #[derive(Debug, Clone)]
 pub struct Matrix<T> {
     /// a vector containing the Matrix data
@@ -186,6 +187,52 @@ impl<T: Copy> Concatenate<Matrix<T>, T> for Matrix<T> {
                 // onto the new array
 
                 for i in 0..self.m {
+                    for j in 0..self.n {
+                        new.data.push(self[[i, j]]);
+                    }
+                    for j in 0..other.n{
+                        new.data.push(other[[i, j]])
+                    }
+                }
+
+                Ok(new)
+            }
+            false => Err(MatrixError::Incompatibility),
+        }
+    }
+}
+
+impl<T: Copy> MatrixVariant<T> for MatrixS<T> {
+    type TView = Self;
+
+    fn len(&self) -> usize {
+        self.data.len()
+    }
+
+    fn size(&self) -> [usize; 2] {
+        [self.n, self.n]
+    }
+
+    fn is_empty(&self) -> bool {
+        self.data.is_empty()
+    }
+
+    fn t(&self) -> Self::TView {unimplemented!()}
+}
+
+impl<T: Copy> Concatenate<Matrix<T>, T> for MatrixS<T> {
+    fn concatenate(self, other: Matrix<T>) -> Result<Matrix<T>, MatrixError> {
+        // check that matrices are compatible
+        match self.n == other.m {
+            true => {
+                // create a matrix with a capacity
+                let mut new: Matrix<T> = Matrix::with_capacity(
+                    self.n * self.n + 1
+                );
+                new.n = self.n + other.n;
+                new.m = self.n;
+
+                for i in 0..self.n {
                     for j in 0..self.n {
                         new.data.push(self[[i, j]]);
                     }
