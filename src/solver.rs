@@ -1,4 +1,4 @@
-use crate::{MatrixVariant, Concatenate, MatrixError, RowOps};
+use crate::{MatrixVariant, Concatenate, MatrixError, RowOps, Matrix};
 use std::fmt::Display;
 
 
@@ -6,25 +6,21 @@ use std::fmt::Display;
 
 /// Gauss-Jordan Elimination to solve a system of linear equations where Ax=B
 /// Applies partial pivoting for numerical stability
-pub fn solve_dense<M: MatrixVariant<f64> + Concatenate<O, f64>, O: MatrixVariant<f64>>(a: M, b: O)
-    -> Result<Vec<f64>, MatrixError>{
-    if b.size()[1] != 1{
+pub fn solve_augmented(mut augmented:Matrix<f64>) -> Result<Vec<f64>, MatrixError>{
+    let [nrows, ncols] = augmented.size();
+
+    if ncols != nrows + 1 {
         return Err(MatrixError::Incompatibility)
     }
-
-    // Augmented Matrix A|B
-    let mut aug = a.concatenate(b)?;
-
-    let [nrows, ncols] = aug.size();
 
     let mut pivot: Option<usize> = None;
 
     // Forward shifting
     for i in 0..nrows {
         // Compare current pivot with others below
-        let mut max: f64 = aug[[i, i]].abs();
+        let mut max: f64 = augmented[[i, i]].abs();
         for j in i+1..nrows {
-            let check = aug[[j, i]].abs();
+            let check = augmented[[j, i]].abs();
             if check > max + f64::EPSILON {
                 max = check;
                 pivot = Some(j);
@@ -36,28 +32,28 @@ pub fn solve_dense<M: MatrixVariant<f64> + Concatenate<O, f64>, O: MatrixVariant
             // Only perform the row swap if the increase is significant
             // REVIEW: Does this actually improve performance or have an impact on numeric stability?
             // What factor should be used?
-            if aug[[p, i]] / aug[[i, i]] > 1.2 {
-                aug.swap_rows(i, p)
+            if augmented[[p, i]] / augmented[[i, i]] > 1.2 {
+                augmented.swap_rows(i, p)
             }
-        } else if aug[[i, i]] == 0f64 {
+        } else if augmented[[i, i]] == 0f64 {
             return Err(MatrixError::Singularity)
-        } else if aug[[i, i]] < f64::EPSILON * 100. {
+        } else if augmented[[i, i]] < f64::EPSILON * 100. {
             // values very close to zero may cause issues
             // 100 is an arbitrary value atm.
             return Err(MatrixError::NumericInstability)
         }
 
         for j in i+1..nrows {
-            let scale = aug[[j, i]] / aug[[i, i]];
-            aug.add_rows(j, i, -scale);
+            let scale = augmented[[j, i]] / augmented[[i, i]];
+            augmented.add_rows(j, i, -scale);
         }
     }
 
     // Back substitution
     for i in (0..nrows).rev() {
         for j in (0..i).rev() {
-            let scale = aug[[j, i]] / aug[[i, i]];
-            aug.add_rows(j, i, -scale);
+            let scale = augmented[[j, i]] / augmented[[i, i]];
+            augmented.add_rows(j, i, -scale);
         }
     }
 
@@ -65,11 +61,25 @@ pub fn solve_dense<M: MatrixVariant<f64> + Concatenate<O, f64>, O: MatrixVariant
     let mut out: Vec<f64> = Vec::with_capacity(ncols);
 
     for i in 0..nrows {
-        let x = aug[[i, nrows]] / aug[[i, i]];
+        let x = augmented[[i, nrows]] / augmented[[i, i]];
         out.push(x);
     }
 
     Ok(out)
+
+}
+
+/// Gauss-Jordan elim + Augmentation
+pub fn solve_dense<M: MatrixVariant<f64> + Concatenate<O, f64>, O: MatrixVariant<f64>>(a: M, b: O)
+    -> Result<Vec<f64>, MatrixError>{
+    if b.size()[1] != 1{
+        return Err(MatrixError::Incompatibility)
+    }
+
+    // Augmented Matrix A|B
+    let mut aug = a.concatenate(b)?;
+
+    solve_augmented(aug)
 }
 
 #[cfg(test)]
@@ -169,5 +179,26 @@ mod tests {
                 0.001, x, ans
             )
        }
+    }
+
+    fn aug_solve_test() {
+        let mut aug = mat![
+            1., -2., 1., 0f64;
+            2., 1., -3., 5.;
+            4., -7., 1., -1.];
+
+        let x = vec![3., 2., 1.];
+
+        let ans = solve_augmented(aug).unwrap();
+
+        if x.iter().enumerate()
+            .any(|(i, x)| !x.approx_eq(&ans[i], f64::EPSILON)) {
+            panic!(
+                r#"assertion failed: `(left ~= right) ± `{:?}`
+    left: `{:?}`
+    right: `{:?}`"#,
+                f64::EPSILON, x, ans
+            )
+        }
     }
 }
