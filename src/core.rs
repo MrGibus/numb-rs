@@ -62,7 +62,7 @@ impl<T> Matrix<T> {
     }
 
     /// Creates a new matrix with a specific vector capacity
-    fn with_capacity(capacity: usize) -> Self {
+    pub fn with_capacity(capacity: usize) -> Self {
         Matrix {
             data: Vec::with_capacity(capacity),
             ..Matrix::default()
