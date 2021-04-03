@@ -39,11 +39,15 @@ pub trait MatrixVariant<T>: std::ops::Index<[usize; 2]> + std::ops::IndexMut<[us
     fn size(&self) -> [usize; 2];
 
     /// True if there is no data in the matrix
-    fn is_empty(&self) -> bool;
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 
     /// returns a view of the current data
     fn t(&self) -> Self::TView;
 }
+
+
 
 /// Required for linear algebra
 pub trait RowOps<T: Copy + MulAssign + AddAssign + Mul<Output=T>> {

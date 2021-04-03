@@ -1,9 +1,5 @@
 //! Core functionality
 //!
-//! TODO: Reimplement slices such that:
-//! M[i] yields row i
-//! M[i][j] yields an element
-//! M.iter_col(i) yields a column iterator
 
 //◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼ # PREAMBLE ◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼
 
@@ -24,7 +20,9 @@ use crate::matrix::*;
 /// The matrix uses zero referencing.
 /// This method is preferable over nested vectors as during operations such as matrix transposition
 /// the vector does not change length. // REVIEW: if a vector is a continious block of memory? does
-/// it matter?
+/// it matter?:
+/// It's not possible to 'slice' a matrix in two dimensions, you can only slice the vector it holds
+/// it is however possible to
 #[derive(Debug, Clone)]
 pub struct Matrix<T> {
     /// a vector containing the Matrix data
@@ -123,6 +121,12 @@ impl<T> Matrix<T> {
             n: &self.m,
         }
     }
+
+    #[inline]
+    pub fn row_slice(&self, idx: usize) -> &[T]{
+        let a = self.n * idx;
+        &self.data[a..a + self.n]
+    }
 }
 
 impl<T: Copy + MulAssign + AddAssign + Mul<Output=T>> RowOps<T> for Matrix<T>{
@@ -143,6 +147,7 @@ impl<T: Copy + MulAssign + AddAssign + Mul<Output=T>> RowOps<T> for Matrix<T>{
 
     /// swaps the pointer of two rows
     fn swap_rows(&mut self, a: usize, b:usize) {
+        assert!(a < self.m && b < self.m);
         for (j, _) in (0..self.n).enumerate() {
             self.swap([a, j], [b, j])
         }  // 4.1844 ns
@@ -325,6 +330,20 @@ impl<'a, T: Copy> Iterator for MatrixIterator<'a, T>
         }
     }
 }
+
+pub struct RowIterator<'a, T> {
+    matrix: & 'a Matrix<T>,
+    i: usize,
+}
+
+impl<'a, T> Iterator for RowIterator<'a, T>{
+    type Item = &'a [T];
+
+    fn next(&mut self) -> Option<Self::Item> {
+        unimplemented!()
+    }
+}
+
 
 /// Iterator struct for the transposed matrix view
 pub struct MatrixTIterator<'a, 'b, T> {
@@ -1490,6 +1509,22 @@ mod tests {
         assert_eq!(f[[0, 1]], 3);
         assert_eq!(f[[1, 0]], 3);
         assert_eq!(f[[1, 1]], 3);
+    }
+
+    #[test]
+    fn row_slice() {
+        let x = mat![0, 1, 2, 3; 4, 5, 6, 7; 8, 9, 10, 11];
+        assert_eq!(x.row_slice(0), &[0, 1, 2, 3]);
+        assert_eq!(x.row_slice(1), &[4, 5, 6, 7]);
+        assert_eq!(x.row_slice(2), &[8, 9, 10, 11]);
+
+        let x = mat![0, 1, 2; 3, 4, 5; 6, 7, 8; 9, 10, 11];
+        assert_eq!(x.row_slice(0), &[0, 1, 2]);
+        assert_eq!(x.row_slice(1), &[3, 4, 5]);
+        assert_eq!(x.row_slice(2), &[6, 7, 8]);
+        assert_eq!(x.row_slice(3), &[9, 10, 11]);
+
+        let mut x = mat![0, 1, 2; 3, 4, 5; 6, 7, 8; 9, 10, 11];
     }
 
     #[test]

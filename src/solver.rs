@@ -1,5 +1,4 @@
 use crate::{MatrixVariant, Concatenate, MatrixError, RowOps, Matrix};
-use std::fmt::Display;
 
 
 /// TODO: Cholesky decomposition for positive definite matrices
@@ -77,7 +76,7 @@ pub fn solve_dense<M: MatrixVariant<f64> + Concatenate<O, f64>, O: MatrixVariant
     }
 
     // Augmented Matrix A|B
-    let mut aug = a.concatenate(b)?;
+    let aug = a.concatenate(b)?;
 
     solve_augmented(aug)
 }
