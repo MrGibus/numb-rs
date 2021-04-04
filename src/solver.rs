@@ -1,11 +1,11 @@
-use crate::{MatrixVariant, Concatenate, MatrixError, RowOps, Matrix};
+use crate::{MatrixVariant, Concatenate, MatrixError, RowOps, Matrix, Float};
 
 
 /// TODO: Cholesky decomposition for positive definite matrices
 
 /// Gauss-Jordan Elimination to solve a system of linear equations where Ax=B
 /// Applies partial pivoting for numerical stability
-pub fn solve_augmented(mut augmented:Matrix<f64>) -> Result<Vec<f64>, MatrixError>{
+pub fn solve_augmented<T: Float>(mut augmented:Matrix<T>) -> Result<Vec<T>, MatrixError>{
     let [nrows, ncols] = augmented.size();
 
     if ncols != nrows + 1 {
@@ -17,10 +17,10 @@ pub fn solve_augmented(mut augmented:Matrix<f64>) -> Result<Vec<f64>, MatrixErro
     // Forward shifting
     for i in 0..nrows {
         // Compare current pivot with others below
-        let mut max: f64 = augmented[[i, i]].abs();
+        let mut max = augmented[[i, i]].abs();
         for j in i+1..nrows {
             let check = augmented[[j, i]].abs();
-            if check > max + f64::EPSILON {
+            if check > max + T::EPSILON {
                 max = check;
                 pivot = Some(j);
             }
@@ -31,12 +31,12 @@ pub fn solve_augmented(mut augmented:Matrix<f64>) -> Result<Vec<f64>, MatrixErro
             // Only perform the row swap if the increase is significant
             // REVIEW: Does this actually improve performance or have an impact on numeric stability?
             // What factor should be used?
-            if augmented[[p, i]] / augmented[[i, i]] > 1.2 {
+            if augmented[[p, i]] / augmented[[i, i]] > T::from_f32(1.2) {
                 augmented.swap_rows(i, p)
             }
-        } else if augmented[[i, i]] == 0f64 {
+        } else if augmented[[i, i]] == T::ZERO {
             return Err(MatrixError::Singularity)
-        } else if augmented[[i, i]] < f64::EPSILON * 100. {
+        } else if augmented[[i, i]] < T::EPSILON * T::from_f32(100.) {
             // values very close to zero may cause issues
             // 100 is an arbitrary value atm.
             return Err(MatrixError::NumericInstability)
@@ -57,20 +57,21 @@ pub fn solve_augmented(mut augmented:Matrix<f64>) -> Result<Vec<f64>, MatrixErro
     }
 
     // Collection (more efficient then scaling all items in row)
-    let mut out: Vec<f64> = Vec::with_capacity(ncols);
+    let mut out: Vec<T> = Vec::with_capacity(ncols);
 
     for i in 0..nrows {
         let x = augmented[[i, nrows]] / augmented[[i, i]];
         out.push(x);
     }
-
     Ok(out)
-
 }
 
 /// Gauss-Jordan elim + Augmentation
-pub fn solve_dense<M: MatrixVariant<f64> + Concatenate<O, f64>, O: MatrixVariant<f64>>(a: M, b: O)
-    -> Result<Vec<f64>, MatrixError>{
+// Implemented for all MatrixVariant where the element is f64
+pub fn solve_dense<M: MatrixVariant<Element=T> + Concatenate<O, T>,
+    O: MatrixVariant<Element=T>, T: Float>
+    (a: M, b: O)-> Result<Vec<T>, MatrixError>{
+
     if b.size()[1] != 1{
         return Err(MatrixError::Incompatibility)
     }
@@ -180,8 +181,9 @@ mod tests {
        }
     }
 
+    #[test]
     fn aug_solve_test() {
-        let mut aug = mat![
+        let aug = mat![
             1., -2., 1., 0f64;
             2., 1., -3., 5.;
             4., -7., 1., -1.];

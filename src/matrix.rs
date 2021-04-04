@@ -28,9 +28,9 @@ pub enum MatrixError {
 
 //◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼ # TRAITS ◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼
 /// The Matrix trait to implement expected functionality
-pub trait MatrixVariant<T>: std::ops::Index<[usize; 2]> + std::ops::IndexMut<[usize; 2]> {
-    /// Transpose View Type
-    type TView;
+pub trait MatrixVariant: std::ops::Index<[usize; 2]> + std::ops::IndexMut<[usize; 2]> {
+    /// The type of matrix elements
+    type Element;
 
     /// returns the length of the matrix (all data)
     fn len(&self) -> usize;
@@ -43,8 +43,8 @@ pub trait MatrixVariant<T>: std::ops::Index<[usize; 2]> + std::ops::IndexMut<[us
         self.len() == 0
     }
 
-    /// returns a view of the current data
-    fn t(&self) -> Self::TView;
+    /// returns the data
+    fn into_vec(self) -> Vec<Self::Element>;
 }
 
 
@@ -56,16 +56,14 @@ pub trait RowOps<T: Copy + MulAssign + AddAssign + Mul<Output=T>> {
 
     /// adds one row to another with a scaling factor such that each element
     /// in the row becomes: base + row_to_add * scale
-    /// TODO: Create a new function for row reduction
     /// The new function will assign values to 0f64 directly under the row to add
-    /// 
     fn add_rows(&mut self, base: usize, row_to_add: usize, scale: T);
 
     /// swaps two rows
     fn swap_rows(&mut self, a: usize, b:usize);
 }
 
-pub trait Concatenate<M: MatrixVariant<T>, T: Copy> {
+pub trait Concatenate<M: MatrixVariant<Element=T>, T> {
     /// merges two matrices into a new matrix
     fn concatenate(self, other: M) -> Result<Matrix<T>, MatrixError>;
 }

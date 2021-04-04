@@ -8,7 +8,7 @@ readme = "README.MD"
 description = "An experimental numeric package written entirely in rust"
 license = "MIT OR Apache-2.0"
 
-[workspace]
+#[workspace]
 
 [dev-dependencies]
 criterion = "0.3.4"

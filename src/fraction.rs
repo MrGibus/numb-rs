@@ -9,6 +9,7 @@ pub struct Fraction<T> {
 
 pub const HALF: Fraction<i32> = Fraction{numerator: 1, denominator: 2};
 
+/// this could just be a method right now idk why don't ask.
 macro_rules! frac {
     ($num:expr , $den:expr) => {
         Fraction{numerator: $num, denominator: $den};

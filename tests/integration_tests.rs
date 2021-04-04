@@ -7,9 +7,9 @@ fn general_creation() {
     let x = mat![11, 12, 13; 21 , 22, 23];
     println!("Integration tests:");
     println!("3x2 Matrix: \n{}", x);
-    println!("transpose: \n{}", x.t());
 }
 
+#[test]
 fn linear_algebra() {
     let a = mat![21., 10., -3.; 14., 6., 0.; 17., 12., -6.];
     let b = mat![122.; 91.; 110.];
