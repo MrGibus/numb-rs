@@ -57,3 +57,30 @@ impl ApproxEq<f32> for f32 {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn approx_test() {
+        let a: f64 = 0.0001;
+        let b: f64 = 0.00011;
+
+        a.assert_approx_eq(&b, 0.00002);
+
+        let a: f32 = 0.0001;
+        let b: f32 = 0.00011;
+
+        &a.assert_approx_eq(&b, 0.00005);
+        assert_eq!(a.approx_eq(&b, 0.000009), false);
+    }
+
+    #[test]
+    #[should_panic]
+    fn approx_panic() {
+        let a: f64 = 0.000001;
+        let b: f64 = 0.0000011;
+        a.assert_approx_eq(&b, 0.00000009)
+    }
+}

@@ -1,8 +1,13 @@
 //! General Matrix Traits, Errors, and functions and implementations.
+//!
 
-use crate::Matrix;
+// Checklist:
+// impl<T: Numeric> Matrix
+
+use crate::dense::Dense;
 use std::fmt::Debug;
 use std::ops::{MulAssign, AddAssign, Mul};
+use crate::numerics::Numeric;
 
 //◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼ # ERRORS  ◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼
 /// an error type specific to matrices
@@ -27,8 +32,7 @@ pub enum MatrixError {
 
 
 //◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼ # TRAITS ◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼
-/// The Matrix trait to implement expected functionality
-pub trait MatrixVariant: std::ops::Index<[usize; 2]> + std::ops::IndexMut<[usize; 2]> {
+pub trait Matrix: std::ops::Index<[usize; 2]> + std::ops::IndexMut<[usize; 2]> {
     /// The type of matrix elements
     type Element;
 
@@ -63,7 +67,7 @@ pub trait RowOps<T: Copy + MulAssign + AddAssign + Mul<Output=T>> {
     fn swap_rows(&mut self, a: usize, b:usize);
 }
 
-pub trait Concatenate<M: MatrixVariant<Element=T>, T> {
+pub trait Concatenate<M: Matrix<Element=T>, T: Numeric> {
     /// merges two matrices into a new matrix
-    fn concatenate(self, other: M) -> Result<Matrix<T>, MatrixError>;
+    fn concatenate(self, other: M) -> Result<Dense<T>, MatrixError>;
 }

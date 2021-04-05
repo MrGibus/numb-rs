@@ -1,11 +1,13 @@
-use crate::{MatrixVariant, Concatenate, MatrixError, RowOps, Matrix, Float};
-
+use crate::matrix::{Matrix, MatrixError, Concatenate, RowOps};
+use crate::numerics::Float;
+use crate::dense::Dense;
 
 /// TODO: Cholesky decomposition for positive definite matrices
+/// TODO: Remove the column limit and augment the indentity matrix to find the inverse
 
 /// Gauss-Jordan Elimination to solve a system of linear equations where Ax=B
 /// Applies partial pivoting for numerical stability
-pub fn solve_augmented<T: Float>(mut augmented:Matrix<T>) -> Result<Vec<T>, MatrixError>{
+pub fn solve_augmented<T: Float>(mut augmented: Dense<T>) -> Result<Vec<T>, MatrixError>{
     let [nrows, ncols] = augmented.size();
 
     if ncols != nrows + 1 {
@@ -68,8 +70,8 @@ pub fn solve_augmented<T: Float>(mut augmented:Matrix<T>) -> Result<Vec<T>, Matr
 
 /// Gauss-Jordan elim + Augmentation
 // Implemented for all MatrixVariant where the element is f64
-pub fn solve_dense<M: MatrixVariant<Element=T> + Concatenate<O, T>,
-    O: MatrixVariant<Element=T>, T: Float>
+pub fn solve_dense<M: Matrix<Element=T> + Concatenate<O, T>,
+    O: Matrix<Element=T>, T: Float>
     (a: M, b: O)-> Result<Vec<T>, MatrixError>{
 
     if b.size()[1] != 1{
@@ -85,8 +87,9 @@ pub fn solve_dense<M: MatrixVariant<Element=T> + Concatenate<O, T>,
 #[cfg(test)]
 mod tests {
     use crate::core::*;
+    use crate::dense::*;
     use super::*;
-    use crate::ApproxEq;
+    use crate::utilities::ApproxEq;
 
     #[test]
     fn dense_solver_a() {

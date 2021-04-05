@@ -2,32 +2,15 @@
 //!
 
 //◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼ # PREAMBLE ◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼
-
-use std::fmt::Display;
-use std::iter::FromIterator;
-/// operations
-use std::ops::{Deref, DerefMut, Index, IndexMut, Mul, MulAssign};
+use std::ops::{Index, IndexMut, Mul};
 
 use crate::utilities::*;
 use crate::matrix::*;
 use crate::numerics::*;
+use crate::dense::Dense;
 
 //◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼ # MATRIX  ◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼
 
-/// a matrix is a vec with dimensional properties (m x n)
-/// m the vertical length (rows)
-/// n represents the horizontal length (columns)
-/// it is stored as a row-major vector similarly to C
-/// The matrix uses zero referencing
-#[derive(Debug, Clone)]
-pub struct Matrix<T> {
-    /// a vector containing the Matrix data
-    pub data: Vec<T>,
-    /// number of rows
-    pub m: usize,
-    /// number of columns
-    pub n: usize,
-}
 
 /// This is only a view to the underlying data
 #[derive(Debug, Clone)]
@@ -51,159 +34,7 @@ pub struct MatrixS<T> {
     pub n: usize,
 }
 
-impl<T> Matrix<T> {
-    /// returns an empty matrix
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// Creates a new matrix with a specific vector capacity
-    pub fn with_capacity(capacity: usize) -> Self {
-        Matrix {
-            data: Vec::with_capacity(capacity),
-            ..Matrix::default()
-        }
-    }
-
-    /// returns an identity matrix
-    /// Will require a type
-    pub fn eye(size: usize) -> Matrix<T>
-    where
-        T: std::convert::From<u32>,
-    {
-        let mut v: Vec<T> = Vec::new();
-        for i in 0..size {
-            for j in 0..size{
-                if i == j {
-                    v.push(1.into());
-                } else {
-                    v.push(0.into());
-                }
-            }
-        }
-        Matrix::<T> {
-            data: v,
-            m: size,
-            n: size,
-        }
-    }
-
-    /// swaps two elements in the vector
-    /// This method only swaps the pointers similar to the vector implementation
-    #[inline]
-    fn swap(&mut self, a: [usize; 2], b: [usize; 2]) {
-        unsafe {
-            let pa: *mut T = &mut self[a];
-            let pb: *mut T = &mut self[b];
-            std::ptr::swap(pa, pb)
-        }
-    }
-
-    /// this simply performs a memory swap of m and n
-    #[inline]
-    fn swap_mn(&mut self) {
-        std::mem::swap(&mut self.m, &mut self.n)
-    }
-
-    /// this method returns self wrapped in a MatrixT struct to indicate that methods should index
-    /// the transpose of the struct it does not perform any matrix
-    pub fn t(&self) -> MatrixT<T> {
-        MatrixT {
-            /// a reference to the vector of the Matrix below
-            data: &self.data,
-            /// m is a reference to the 'n' column of the Matrix
-            m: &self.n,
-            /// n is a reference to the 'm' column of the Matrix
-            n: &self.m,
-        }
-    }
-
-    #[inline]
-    pub fn row_slice(&self, idx: usize) -> &[T]{
-        let a = self.n * idx;
-        &self.data[a..a + self.n]
-    }
-}
-
-impl<T: Numeric> RowOps<T> for Matrix<T>{
-    /// Scales all elements in a given row
-    fn scale_row(&mut self, i: usize, scale: T){
-        for j in 0..self.n {
-            self[[i, j]] *= scale;
-        }
-    }
-
-    /// adds one row to another with a scaling factor
-    fn add_rows(&mut self, base: usize, row_to_add: usize, scale: T){
-        for j in 0..self.n {
-            let x = self[[row_to_add, j]] * scale;
-            self[[base, j]] += x;
-        }
-    }
-
-    /// swaps rows a and b
-    fn swap_rows(&mut self, a: usize, b:usize) {
-        assert!(a < self.m && b < self.m);
-        for (j, _) in (0..self.n).enumerate() {
-            self.swap([a, j], [b, j])
-        }
-    }
-}
-
-impl<T: Numeric> MatrixVariant for Matrix<T> {
-    type Element = T;
-
-    fn len(&self) -> usize {
-        self.data.len()
-    }
-
-    fn size(&self) -> [usize; 2] {
-        [self.m, self.n]
-    }
-
-    fn is_empty(&self) -> bool {
-        self.data.is_empty()
-    }
-
-    fn into_vec(self) -> Vec<T> {
-        self.data
-    }
-}
-
-impl<T: Numeric> Concatenate<Matrix<T>, T> for Matrix<T> {
-    fn concatenate(self, other: Matrix<T>) -> Result<Matrix<T>, MatrixError> {
-        // check that matrices are compatible
-        match self.m == other.m {
-            true => {
-                // create a matrix with a capacity
-                let mut new: Matrix<T> = Matrix::with_capacity(
-                    self.data.capacity() + other.data.capacity()
-                );
-                new.n = self.n + other.n;
-                new.m = self.m;
-                // TODO: Vectorise this loop
-
-                // if we think of appending to a vector instead of a 2d array we might consider
-                // that we wish to add a row starting at 'i' in the vector and push values
-                // onto the new array
-
-                for i in 0..self.m {
-                    for j in 0..self.n {
-                        new.data.push(self[[i, j]]);
-                    }
-                    for j in 0..other.n{
-                        new.data.push(other[[i, j]])
-                    }
-                }
-
-                Ok(new)
-            }
-            false => Err(MatrixError::Incompatibility),
-        }
-    }
-}
-
-impl<T: Numeric> MatrixVariant for MatrixS<T> {
+impl<T: Numeric> Matrix for MatrixS<T> {
     type Element = T;
 
     fn len(&self) -> usize {
@@ -223,13 +54,13 @@ impl<T: Numeric> MatrixVariant for MatrixS<T> {
     }
 }
 
-impl<T: Numeric> Concatenate<Matrix<T>, T> for MatrixS<T> {
-    fn concatenate(self, other: Matrix<T>) -> Result<Matrix<T>, MatrixError> {
+impl<T: Numeric> Concatenate<Dense<T>, T> for MatrixS<T> {
+    fn concatenate(self, other: Dense<T>) -> Result<Dense<T>, MatrixError> {
         // check that matrices are compatible
         match self.n == other.m {
             true => {
                 // create a matrix with a capacity
-                let mut new: Matrix<T> = Matrix::with_capacity(
+                let mut new: Dense<T> = Dense::with_capacity(
                     self.n * self.n + 1
                 );
                 new.n = self.n + other.n;
@@ -251,183 +82,14 @@ impl<T: Numeric> Concatenate<Matrix<T>, T> for MatrixS<T> {
     }
 }
 
-impl<T: Numeric> Matrix<T> {
-    /// transposes a matrix, unlike method the t() method this manipulates the matrix.
-    /// Will use a different algorithm if the matrix is square.
-    pub fn transpose(&mut self) {
-        if self.m == self.n {
-            //use simplified square algorithm
-            for i in 0..self.m - 1 {
-                for j in i + 1..self.m {
-                    self.swap([i, j], [j, i]);
-                }
-            }
-        } else {
-            // This is a non-square matrix
-            // It uses out-of-place transposition and is very inefficient
-
-            // create a new vector
-            let mut new: Vec<T> = Vec::with_capacity(self.len());
-            unsafe {
-                // make sure that all of this data is filled
-                new.set_len(self.len())
-            }
-
-            for i in 0..self.m {
-                for j in 0..self.n {
-                    new[i + j * self.m] = self[[i, j]];
-                }
-            }
-            self.data = new;
-            self.swap_mn();
-        }
-    }
-}
-
-/// Experimental feature: Currently always returns an enumeration :{T, [i, j]}
-/// Likely to change
-pub struct MatrixIterator<'a, T> {
-    matrix: &'a Matrix<T>,
-    i: usize,
-    j: usize,
-}
-
-impl<'a, T: Numeric> IntoIterator for &'a Matrix<T>
-{
-    type Item = (T, [usize; 2]);
-    type IntoIter = MatrixIterator<'a, T>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        MatrixIterator {
-            matrix: self,
-            i: 0,
-            j: 0,
-        }
-    }
-}
-
-impl<'a, T: Numeric> Iterator for MatrixIterator<'a, T>
-{
-    type Item = (T, [usize; 2]);
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        let i = self.i;
-        let j = self.j;
-        if i < self.matrix.m && j < self.matrix.n {
-            let out = (self.matrix[[i, j]], [i, j]);
-            if self.j < self.matrix.n - 1 {
-                self.j += 1;
-            } else if self.i < self.matrix.m {
-                self.i += 1;
-                self.j = 0;
-            }
-            Some(out)
-        } else {
-            None
-        }
-    }
-}
-
-#[allow(dead_code)]
-pub struct RowIterator<'a, T> {
-    matrix: & 'a Matrix<T>,
-    i: usize,
-}
-
-#[allow(dead_code)]
-impl<'a, T> Iterator for RowIterator<'a, T>{
-    type Item = &'a [T];
-
-    fn next(&mut self) -> Option<Self::Item> {
-        unimplemented!()
-    }
-}
-
-/// The deref operator * will yield the inner Vec
-impl<T> Deref for Matrix<T> {
-    type Target = Vec<T>;
-    fn deref(&self) -> &Self::Target {
-        &self.data
-    }
-}
-
-/// The deref operator * will yield the inner Vec
-impl<T> DerefMut for Matrix<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.data
-    }
-}
-
-/// multiplying a Matrix by a scalar of the same type
-impl<T: Numeric> Mul<T> for Matrix<T>
-where
-    Vec<T>: FromIterator<<T as Mul>::Output>,
-{
-    type Output = Self;
-
-    fn mul(self, scalar: T) -> Self {
-        let v: Vec<T> = self.data.into_iter().map(|x| x * scalar).collect();
-
-        Matrix { data: v, ..self }
-    }
-}
-
-impl<T> MulAssign<T> for Matrix<T>
-where
-    T: MulAssign,
-    T: Copy,
-{
-    fn mul_assign(&mut self, scalar: T) {
-        self.data.iter_mut().for_each(|x| *x *= scalar)
-    }
-}
-
-/// Matrix multiplication returns the dot product
-/// The matrices must have dimensions such that mn * nk = mk
-/// This is a naive solution, there are more efficient computational methods tbd later
-impl<T> Mul<Matrix<T>> for Matrix<T>
-where
-    T: Numeric,
-{
-    type Output = Result<Self, MatrixError>;
-
-    fn mul(self, other: Self) -> Self::Output {
-        if self.n != other.m {
-            Err(MatrixError::Incompatibility)
-        } else {
-            let mut out: Matrix<T> = Matrix::with_capacity(self.m * other.n);
-            out.m = self.m;
-            out.n = other.n;
-
-            unsafe {
-                out.data.set_len(out.m * out.n);
-            }
-
-            for i in 0..out.m {
-                for j in 0..out.n {
-                    out[[i, j]] = T::ZERO;
-                    for k in 0..self.n {
-                        out[[i, j]] += self[[i, k]] * other[[k, j]]
-                    }
-                }
-            }
-            Ok(out)
-        }
-    }
-}
-
-impl<T> Mul<MatrixS<T>> for Matrix<T>
-where
-    T: Numeric,
-{
+impl<T: Numeric> Mul<MatrixS<T>> for Dense<T> {
     type Output = Result<Self, MatrixError>;
 
     fn mul(self, other: MatrixS<T>) -> Self::Output {
         if self.n != other.n {
             Err(MatrixError::Incompatibility)
         } else {
-            let mut out: Matrix<T> = Matrix::with_capacity(self.m * other.n);
+            let mut out: Dense<T> = Dense::with_capacity(self.m * other.n);
             out.m = self.m;
             out.n = other.n;
 
@@ -451,17 +113,14 @@ where
 /// It is important to note that the multiplication of two symmetric matrices will return a
 /// standard matric struct as the product of two symmetric matrices does not always result in
 /// a symmetric matrix as an output
-impl<T> Mul<MatrixS<T>> for MatrixS<T>
-where
-    T: Numeric,
-{
-    type Output = Result<Matrix<T>, MatrixError>;
+impl<T: Numeric> Mul<MatrixS<T>> for MatrixS<T> {
+    type Output = Result<Dense<T>, MatrixError>;
 
     fn mul(self, other: Self) -> Self::Output {
         if self.n != other.n {
             Err(MatrixError::Incompatibility)
         } else {
-            let mut out: Matrix<T> = Matrix::with_capacity(self.n * self.n);
+            let mut out: Dense<T> = Dense::with_capacity(self.n * self.n);
             out.m = self.n;
             out.n = self.n;
 
@@ -482,17 +141,14 @@ where
     }
 }
 
-impl<T> Mul<Matrix<T>> for MatrixS<T>
-where
-    T: Numeric,
-{
-    type Output = Result<Matrix<T>, MatrixError>;
+impl<T: Numeric> Mul<Dense<T>> for MatrixS<T> {
+    type Output = Result<Dense<T>, MatrixError>;
 
-    fn mul(self, other: Matrix<T>) -> Self::Output {
+    fn mul(self, other: Dense<T>) -> Self::Output {
         if self.n != other.m {
             Err(MatrixError::Incompatibility)
         } else {
-            let mut out: Matrix<T> = Matrix::with_capacity(self.n * other.n);
+            let mut out: Dense<T> = Dense::with_capacity(self.n * other.n);
             out.m = self.n;
             out.n = other.n;
 
@@ -513,17 +169,14 @@ where
     }
 }
 
-impl<T> Mul<MatrixT<'_, T>> for Matrix<T>
-where
-    T: Numeric,
-{
+impl<T: Numeric> Mul<MatrixT<'_, T>> for Dense<T> {
     type Output = Result<Self, MatrixError>;
 
     fn mul(self, other: MatrixT<'_, T>) -> Self::Output {
         if self.n != *other.m {
             Err(MatrixError::Incompatibility)
         } else {
-            let mut out: Matrix<T> = Matrix::with_capacity(self.m * other.n);
+            let mut out: Dense<T> = Dense::with_capacity(self.m * other.n);
             out.m = self.m;
             out.n = *other.n;
 
@@ -544,17 +197,14 @@ where
     }
 }
 
-impl<T> Mul<Matrix<T>> for MatrixT<'_, T>
-where
-    T: Numeric,
-{
-    type Output = Result<Matrix<T>, MatrixError>;
+impl<T: Numeric> Mul<Dense<T>> for MatrixT<'_, T> {
+    type Output = Result<Dense<T>, MatrixError>;
 
-    fn mul(self, other: Matrix<T>) -> Self::Output {
+    fn mul(self, other: Dense<T>) -> Self::Output {
         if *self.n != other.m {
             Err(MatrixError::Incompatibility)
         } else {
-            let mut out: Matrix<T> = Matrix::with_capacity(self.m * other.n);
+            let mut out: Dense<T> = Dense::with_capacity(self.m * other.n);
             out.m = *self.m;
             out.n = other.n;
 
@@ -575,31 +225,6 @@ where
     }
 }
 
-impl<T> Default for Matrix<T> {
-    fn default() -> Self {
-        Matrix {
-            data: Vec::new(),
-            m: 1,
-            n: 0,
-        }
-    }
-}
-
-impl<T> Index<[usize; 2]> for Matrix<T> {
-    type Output = T;
-    /// takes i, j returns the element
-    fn index(&self, idx: [usize; 2]) -> &T {
-        &self.data[idx[1] + idx[0] * self.n]
-    }
-}
-
-impl<T> IndexMut<[usize; 2]> for Matrix<T> {
-    /// takes i, j returns a mutable reference
-    fn index_mut(&mut self, idx: [usize; 2]) -> &mut T {
-        &mut self.data[idx[1] + idx[0] * self.n]
-    }
-}
-
 impl<T> Index<[usize; 2]> for MatrixT<'_, T> {
     type Output = T;
 
@@ -608,10 +233,7 @@ impl<T> Index<[usize; 2]> for MatrixT<'_, T> {
     }
 }
 
-impl<T> Index<[usize; 2]> for MatrixS<T>
-where
-    T: Copy,
-{
+impl<T: Copy> Index<[usize; 2]> for MatrixS<T> {
     type Output = T;
 
     fn index(&self, idx: [usize; 2]) -> &T {
@@ -625,10 +247,7 @@ where
     }
 }
 
-impl<T> IndexMut<[usize; 2]> for MatrixS<T>
-where
-    T: Copy,
-{
+impl<T: Numeric> IndexMut<[usize; 2]> for MatrixS<T> {
     fn index_mut(&mut self, idx: [usize; 2]) -> &mut T {
         let x = if idx[0] > idx[1] {
             idx[0] * (idx[0] + 1) / 2 + idx[1]
@@ -645,7 +264,7 @@ where
 /// Matrix and MatrixT equality implementation macro for integers
 macro_rules! impl_eq_int {
     ($int:ty) => {
-        impl std::cmp::PartialEq<Matrix<$int>> for Matrix<$int> {
+        impl std::cmp::PartialEq<Dense<$int>> for Dense<$int> {
             fn eq(&self, other: &Self) -> bool {
                 if self.m != other.m || self.n != other.n {
                     return false;
@@ -665,7 +284,7 @@ macro_rules! impl_eq_int {
             }
         }
 
-        impl<'a> std::cmp::PartialEq<MatrixT<'a, $int>> for Matrix<$int> {
+        impl<'a> std::cmp::PartialEq<MatrixT<'a, $int>> for Dense<$int> {
             fn eq(&self, other: &MatrixT<'a, $int>) -> bool {
                 if self.m != *other.m || self.n != *other.n {
                     return false;
@@ -683,8 +302,8 @@ macro_rules! impl_eq_int {
             }
         }
 
-        impl std::cmp::PartialEq<Matrix<$int>> for MatrixT<'_, $int> {
-            fn eq(&self, other: &Matrix<$int>) -> bool {
+        impl std::cmp::PartialEq<Dense<$int>> for MatrixT<'_, $int> {
+            fn eq(&self, other: &Dense<$int>) -> bool {
                 if self.m != &other.m || self.n != &other.n {
                     return false;
                 } else {
@@ -711,8 +330,8 @@ macro_rules! impl_eq_int {
             }
         }
 
-        impl std::cmp::PartialEq<Matrix<$int>> for MatrixS<$int> {
-            fn eq(&self, other: &Matrix<$int>) -> bool {
+        impl std::cmp::PartialEq<Dense<$int>> for MatrixS<$int> {
+            fn eq(&self, other: &Dense<$int>) -> bool {
                 if self.n != other.m || self.n != other.n {
                     return false;
                 } else {
@@ -728,7 +347,7 @@ macro_rules! impl_eq_int {
             }
         }
 
-        impl std::cmp::PartialEq<MatrixS<$int>> for Matrix<$int> {
+        impl std::cmp::PartialEq<MatrixS<$int>> for Dense<$int> {
             fn eq(&self, other: &MatrixS<$int>) -> bool {
                 if self.m != other.n || self.n != other.n {
                     return false;
@@ -745,7 +364,7 @@ macro_rules! impl_eq_int {
             }
         }
 
-        impl std::cmp::Eq for Matrix<$int> {}
+        impl std::cmp::Eq for Dense<$int> {}
         impl std::cmp::Eq for MatrixT<'_, $int> {}
         impl std::cmp::Eq for MatrixS<$int> {}
     };
@@ -762,33 +381,6 @@ impl_eq_int!(i16);
 impl_eq_int!(i32);
 impl_eq_int!(i64);
 impl_eq_int!(i128);
-
-/// Pretty Matrix Print for Integers
-impl<T: Integer> Display for Matrix<T>{
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let mut string = String::new();
-        // find the max the length to print
-        let max = self.data
-            .iter()
-            .fold(0, |max: usize, x: &T| {
-                let disp_len = x.to_string().len();
-                if max > disp_len {max} else {disp_len}
-            });
-
-        let [m, n] = self.size();
-
-        for i in 0..m{
-            for j in 0..n{
-                let x = self[[i, j]];
-                let pad =  max - x.to_string().len() + 2;
-                (0..pad).into_iter().for_each(|_| string.push_str(&" ".to_string()));
-                string.push_str(&format!("{}", x));
-            }
-            string.push_str(&"\n".to_string());
-        }
-        write!(f, "{}", string)
-    }
-}
 
 
 /// Integer display implementation macro for Matrix and MatrixT
@@ -829,7 +421,7 @@ macro_rules! impl_display_matrix_int {
 // Float Display implementation
 macro_rules! impl_display_matrix_float {
     ($f:ty) => {
-        impl Display for Matrix<$f> {
+        impl Display for Dense<$f> {
             fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
                 let s = self
                     .data
@@ -876,78 +468,6 @@ macro_rules! impl_display_matrix_float {
             }
         }
     };
-}
-
-/// With a focus on being concise: This macro will create a matrix using syntax similar to matlab
-/// A semicolon ';' represends a new matrix row
-/// # example 1:
-/// ```
-/// # #[macro_use]
-/// # use numb_rs::{mat, Matrix};
-/// # fn main() {
-/// let a = mat![
-/// 0, 1, 2;
-/// 3, 4, 5
-/// ];
-/// # }
-/// ```
-/// will provide a 3x2 matrix as specified
-///
-/// # example 2:
-/// It's also possible to initialise a matrix with a given value
-/// This uses a different syntax to standard rust code due to a semicolon being used to denote a
-/// row change. for instance:
-/// ```
-/// let x = [0.;5];
-/// ```
-/// is translated to:
-/// ```
-/// # #[macro_use]
-/// # use numb_rs::{mat, Matrix};
-/// # fn main() {
-/// let x = mat![0. => 5, 1];
-/// # }
-/// ```
-/// where 5, 1 represent m and n, i.e. the row and column lengths respectively
-///
-#[macro_export]
-macro_rules! mat {
-    // empty
-    () => {
-        Matrix::new()
-    };
-    // standard
-    ($($($item:expr),+);+) => {{
-        let mut v = Vec::new();
-        // underscored to surpress warnings
-        let mut _n;
-        let mut m = 0;
-        $(
-            _n = 0;
-            $({
-                v.push($item);
-                _n += 1;
-            })*
-            m += 1;
-        )*
-        Matrix{
-            data: v,
-            n: _n,
-            m,
-        }
-    }};
-    // fills an array with a value
-    ($val:expr => $m: expr, $n: expr) => {{
-        let mut v = Vec::new();
-        for _ in 0..($m * $n) {
-            v.push($val)
-        }
-        Matrix {
-            data: v,
-            m: $m,
-            n: $n,
-        }
-    }}
 }
 
 /// Creates a symmetrical matrix
@@ -1011,56 +531,6 @@ macro_rules! symmat {
 
 //◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼ # UTILITIES ◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼
 
-impl ApproxEq<Matrix<f64>> for Matrix<f64> {
-    type Check = f64;
-
-    fn approx_eq(&self, other: &Matrix<f64>, tolerance: Self::Check) -> bool {
-        if self.m != other.m || self.n != other.n {
-            return false;
-        }
-
-        for i in 0..self.m {
-            for j in 0..self.n {
-                if (self[[i, j]] - other[[i, j]]).abs() > tolerance {
-                    return false;
-                }
-            }
-        }
-        true
-    }
-
-    fn assert_approx_eq(&self, other: &Matrix<f64>, tolerance: Self::Check) {
-        if self.m != other.m || self.n != other.n {
-            panic!(
-                r#"assertion failed: Dimension Inequality
-    left  m x n: `{:?}`x`{:?}`
-    right m x n: `{:?}`x`{:?}`"#,
-                self.m, other.m, self.n, other.n
-            )
-        }
-
-        for i in 0..self.m {
-            for j in 0..self.n {
-                let delta = (self[[i, j]] - other[[i, j]]).abs();
-                if delta > tolerance {
-                    panic!(
-                        r#"assertion failed at element [{:?}, {:?}]: ± `{:?}`
-    left: `{:?}`
-    right: `{:?}`
-    delta = `{:?}`"#,
-                        i,
-                        j,
-                        tolerance,
-                        self[[i, j]],
-                        other[[i, j]],
-                        delta
-                    );
-                }
-            }
-        }
-    }
-}
-
 impl ApproxEq<MatrixS<f64>> for MatrixS<f64> {
     type Check = f64;
 
@@ -1111,10 +581,10 @@ impl ApproxEq<MatrixS<f64>> for MatrixS<f64> {
     }
 }
 
-impl ApproxEq<Matrix<f64>> for MatrixS<f64> {
+impl ApproxEq<Dense<f64>> for MatrixS<f64> {
     type Check = f64;
 
-    fn approx_eq(&self, other: &Matrix<f64>, tolerance: Self::Check) -> bool {
+    fn approx_eq(&self, other: &Dense<f64>, tolerance: Self::Check) -> bool {
         if self.n != other.n || self.n != other.m {
             return false;
         }
@@ -1129,7 +599,7 @@ impl ApproxEq<Matrix<f64>> for MatrixS<f64> {
         true
     }
 
-    fn assert_approx_eq(&self, other: &Matrix<f64>, tolerance: Self::Check) {
+    fn assert_approx_eq(&self, other: &Dense<f64>, tolerance: Self::Check) {
         if self.n != other.n || self.n != other.m {
             panic!(
                 r#"assertion failed: Dimension Inequality
@@ -1161,7 +631,7 @@ impl ApproxEq<Matrix<f64>> for MatrixS<f64> {
     }
 }
 
-impl ApproxEq<MatrixS<f64>> for Matrix<f64> {
+impl ApproxEq<MatrixS<f64>> for Dense<f64> {
     type Check = f64;
 
     fn approx_eq(&self, other: &MatrixS<f64>, tolerance: Self::Check) -> bool {
@@ -1215,57 +685,6 @@ impl ApproxEq<MatrixS<f64>> for Matrix<f64> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn approx_test() {
-        let a: f64 = 0.0001;
-        let b: f64 = 0.00011;
-
-        a.assert_approx_eq(&b, 0.00002);
-
-        let a: f32 = 0.0001;
-        let b: f32 = 0.00011;
-
-        &a.assert_approx_eq(&b, 0.00005);
-        assert_eq!(a.approx_eq(&b, 0.000009), false);
-    }
-
-    #[test]
-    #[should_panic]
-    fn approx_panic() {
-        let a: f64 = 0.000001;
-        let b: f64 = 0.0000011;
-        a.assert_approx_eq(&b, 0.00000009)
-    }
-
-    #[test]
-    fn approx_matrix_test() {
-        let a: Matrix<f64> = mat![
-            1., 2., 3.;
-            0.000001, 0., 1000.
-        ];
-
-        let b: Matrix<f64> = mat![
-            1., 2., 3.;
-            0.0000011, 0., 1000.
-        ];
-
-        assert!(&a.approx_eq(&b, 0.0000002));
-
-        let c = symmat![
-            1.;
-            2., 3.;
-            0.000001, 0., 1000.
-        ];
-
-        let d = symmat![
-            1.;
-            2., 3.;
-            0.0000011, 0., 1000.
-        ];
-
-        assert!(&c.approx_eq(&d, 0.0000002));
-    }
 
     #[test]
     fn sym_test() {
@@ -1348,131 +767,6 @@ mod tests {
     // }
 
     #[test]
-    fn test_raw_matrix() {
-        let a = Matrix {
-            data: vec![0, 1, 2, 3, 4, 5],
-            n: 3,
-            m: 2,
-        };
-        assert_eq!(a[[0, 0]], 0);
-        assert_eq!(a[[0, 1]], 1);
-        assert_eq!(a[[0, 2]], 2);
-        assert_eq!(a[[1, 0]], 3);
-        assert_eq!(a[[1, 1]], 4);
-        assert_eq!(a[[1, 2]], 5);
-
-        let i: Matrix<u32> = Matrix::eye(3);
-        let eye3 = mat![
-            1, 0, 0;
-            0, 1, 0;
-            0, 0, 1
-        ];
-
-        assert_eq!(i, eye3);
-
-        let j: Matrix<f64> = Matrix::eye(2);
-        j.assert_approx_eq(&mat![1., 0.; 0., 1.], std::f64::EPSILON)
-    }
-
-    #[test]
-    fn test_matmacs() {
-        let a: Matrix<f64> = mat!();
-        assert!(a.is_empty());
-
-        let b: Matrix<u8> = mat![0;1;2;3;4];
-        assert!(!b.is_empty());
-        assert_eq!(b.m, 5);
-        assert_eq!(b.n, 1);
-
-        let c = mat![1];
-        assert_eq!(c.len(), 1);
-
-        let d = mat![0, 1, 2];
-        assert_eq!(d.len(), 3);
-
-        let e = mat![
-            0, 1, 2;
-            3, 4, 5
-        ];
-
-        assert_eq!(e.len(), 6);
-        assert_eq!(e[[0, 0]], 0);
-        assert_eq!(e[[0, 1]], 1);
-        assert_eq!(e[[0, 2]], 2);
-        assert_eq!(e[[1, 0]], 3);
-        assert_eq!(e[[1, 1]], 4);
-        assert_eq!(e[[1, 2]], 5);
-
-        let f = mat![3 => 2, 2];
-        assert_eq!(f[[0, 0]], 3);
-        assert_eq!(f[[0, 1]], 3);
-        assert_eq!(f[[1, 0]], 3);
-        assert_eq!(f[[1, 1]], 3);
-    }
-
-    #[test]
-    fn row_slice() {
-        let x = mat![0, 1, 2, 3; 4, 5, 6, 7; 8, 9, 10, 11];
-        assert_eq!(x.row_slice(0), &[0, 1, 2, 3]);
-        assert_eq!(x.row_slice(1), &[4, 5, 6, 7]);
-        assert_eq!(x.row_slice(2), &[8, 9, 10, 11]);
-
-        let x = mat![0, 1, 2; 3, 4, 5; 6, 7, 8; 9, 10, 11];
-        assert_eq!(x.row_slice(0), &[0, 1, 2]);
-        assert_eq!(x.row_slice(1), &[3, 4, 5]);
-        assert_eq!(x.row_slice(2), &[6, 7, 8]);
-        assert_eq!(x.row_slice(3), &[9, 10, 11]);
-    }
-
-    #[test]
-    fn swap() {
-        let mut a: Matrix<u32> = mat![1,2,3;4,5,6;7,8,9];
-        a.swap([0, 0], [2, 2]);
-        a.swap([0, 1], [2, 0]);
-        assert_eq!(a.data, vec![9, 7, 3, 4, 5, 6, 2, 8, 1]);
-        assert_eq!(a, mat![9,7,3;4,5,6;2,8,1])
-    }
-
-    #[test]
-    fn row_swap() {
-        let mut a: Matrix<i32> = mat![1,2,3,4; 5,6,7,8; 9,10,11,12];
-        a.swap_rows(0, 2);
-        let b: Matrix<i32> = mat![9,10,11,12; 5,6,7,8; 1,2,3,4];
-        assert_eq!(a, b)
-    }
-
-    #[test]
-    fn concatenate() {
-        let a = mat![1, 2; 3, 4];
-        let b = mat![5; 6];
-        let ans = mat![1, 2, 5; 3, 4, 6];
-
-        assert_eq!(a.concatenate(b).unwrap(), ans);
-
-        let a = mat![1, 5; 2, 6; 3, 7; 4, 8];
-        let b = mat![9, 13; 10, 14; 11, 15; 12, 16];
-        let ans = mat![1, 5, 9, 13; 2, 6, 10, 14; 3, 7, 11, 15; 4, 8, 12, 16];
-
-        assert_eq!(a.concatenate(b).unwrap(), ans);
-    }
-
-    #[test]
-    fn transpose() {
-        let mut a: Matrix<u32> = mat![1,2,3;4,5,6;7,8,9];
-        a.transpose();
-        assert_eq!(a, mat![1,4,7;2,5,8;3,6,9]);
-
-        let mut b: Matrix<u32> = mat![1,2,3,4;5,6,7,8];
-        b.transpose();
-
-        assert_eq!(b.m, 4);
-        assert_eq!(b.n, 2);
-
-        assert_eq!(b.data, vec![1, 5, 2, 6, 3, 7, 4, 8]);
-        assert_eq!(b, mat![1,5;2,6;3,7;4,8]);
-    }
-
-    #[test]
     fn t_view_index() {
         let a = mat![11, 12, 13; 21, 22, 23];
 
@@ -1511,122 +805,9 @@ mod tests {
         assert_eq!(ans, at);
     }
 
-    // #[test]
-    // fn matrix_print() {
-    //
-    //     let a = mat![
-    //         1., 2., 3.;
-    //         4., 5., 6.;
-    //         7., 8., 9.
-    //     ];
-    //
-    //     assert_eq!(
-    //         format!("{}", a),
-    //         "  1.00  2.00  3.00\n  4.00  5.00  6.00\n  7.00  8.00  9.00\n".to_string()
-    //     );
-    //
-    //     assert_eq!(
-    //         format!("{}", a.t()),
-    //         "  1.00  4.00  7.00\n  2.00  5.00  8.00\n  3.00  6.00  9.00\n".to_string()
-    //     );
-    //
-    //     let a: Matrix<i16> = mat![
-    //         1, 2, 3;
-    //         4, 5, 6;
-    //         7, 8, 9
-    //     ];
-    //
-    //     assert_eq!(
-    //         format!("{}", a),
-    //         "  1  2  3\n  4  5  6\n  7  8  9\n".to_string()
-    //     );
-    //
-    //     assert_eq!(
-    //         format!("{}", a.t()),
-    //         "  1  4  7\n  2  5  8\n  3  6  9\n".to_string()
-    //     );
-    //
-    //     let c = symmat![
-    //         1.;
-    //         2., 3.;
-    //         4., 5., 6.
-    //     ];
-    //
-    //     assert_eq!(
-    //         format!("{}", c),
-    //         "  1.00  2.00  4.00\n  2.00  3.00  5.00\n  4.00  5.00  6.00\n".to_string()
-    //     );
-    //
-    //     let d = symmat![
-    //         1;
-    //         2, 3;
-    //         4, 5, 6
-    //     ];
-    //
-    //     assert_eq!(
-    //         format!("{}", d),
-    //         "  1  2  4\n  2  3  5\n  4  5  6\n".to_string()
-    //     );
-    //
-    //     let e : Matrix<i16> = mat![1, 2; 3000, -1000; 25, 0];
-    //
-    //     assert_eq!(
-    //         format!("{}", e),
-    //         "      1      2\n   3000  -1000\n     25      0\n".to_string()
-    //     );
-    // }
-
     /// operatives testing
     mod ops {
         use super::*;
-
-        #[test]
-        #[allow(unused_mut)]
-        fn deref_test() {
-            let x = mat![1, 2, 3; 4, 5, 6];
-            assert_eq!(*x, vec![1, 2, 3, 4, 5, 6]);
-
-            let mut y = mat![1; 2; 3];
-            assert_eq!(*y, vec![1, 2, 3]);
-        }
-
-        #[test]
-        fn scalar_mul() {
-            let x = mat![1, 2; 3, 4];
-            assert_eq!(x * 2, mat![2, 4; 6, 8]);
-
-            let mut x = mat![0, 4; 8, 10];
-            x *= 3;
-            assert_eq!(x, mat![0, 12; 24, 30]);
-        }
-
-        #[test]
-        fn row_mul() {
-            let mut x = mat![0, 4; 8, 10];
-
-            x.scale_row(1, 2);
-
-            assert_eq!(mat![0, 4; 16, 20], x)
-        }
-
-        #[test]
-        fn row_add() {
-            let mut x = mat![1, 2; 8, 10];
-
-            x.add_rows(1, 0, 2);
-
-            assert_eq!(mat![1, 2; 10, 14], x)
-        }
-
-        #[test]
-        fn matrix_mul() {
-            let a = mat! [ 1, 3, 5; 7, 4, 6];
-            let b = mat![4, 5; 2, 8; 4, 1];
-            let c = a * b;
-            let ans = mat![30, 34; 60, 73];
-            assert!(c.is_ok());
-            assert_eq!(c.unwrap(), ans);
-        }
 
         #[test]
         fn matrix_mul_transpose() {
@@ -1688,13 +869,5 @@ mod tests {
             assert_eq!((a * b).unwrap(), c);
         }
 
-        #[test]
-        fn matrix_incompatibilities() {
-            let a = mat![1, 2, 3];
-            let b = mat![2, 3; 4, 5];
-            let c = a * b;
-            assert!(c.is_err());
-            assert_eq!(c.unwrap_err(), MatrixError::Incompatibility)
-        }
     }
 }

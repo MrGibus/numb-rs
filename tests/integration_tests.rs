@@ -1,6 +1,8 @@
-#![allow(unused_attributes)]
-#[macro_use]
-use numb_rs::*;
+use numb_rs::{mat, Dense, solver::solve_dense};
+
+
+#[cfg(test)]
+use numb_rs::utilities::ApproxEq; // only for tests
 
 #[test]
 fn general_creation() {
