@@ -86,8 +86,8 @@ pub fn solve_dense<M: Matrix<Element=T> + Concatenate<O, T>,
 
 #[cfg(test)]
 mod tests {
-    use crate::core::*;
     use crate::dense::*;
+    use crate::symmetric::Symmetric;
     use super::*;
     use crate::utilities::ApproxEq;
 

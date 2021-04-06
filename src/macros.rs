@@ -67,3 +67,63 @@ macro_rules! mat {
         }
     }}
 }
+
+/// Creates a symmetrical matrix
+/// Note that the symmetrical matrix is of type MatrixS,
+/// The aim of this macro and associated struct is for saving space
+/// # example:
+/// ```
+/// # use numb_rs::symmetric::Symmetric;
+/// # use numb_rs::dense::Dense;
+/// # use numb_rs::{mat, symmat};
+///
+/// # fn main() {
+/// let a = symmat![
+/// 0;
+/// 1, 2;
+/// 3, 4, 5
+///
+/// ];
+///
+/// assert_eq!(a[[1, 2]], a[[2, 1]]);
+///
+/// // equivalent to:
+/// let b = mat![
+/// 0, 1, 3;
+/// 1, 2, 4;
+/// 3, 4, 5
+/// ];
+///
+/// assert_eq!(a, b);
+/// # }
+/// ```
+#[macro_export]
+macro_rules! symmat {
+    ($($($item:expr),+);+) => {{
+        let mut v = Vec::new();
+        let mut n = 0;
+        $(
+        $({
+            v.push($item);
+        })*
+            n += 1;
+        )*
+
+        Symmetric{
+        data: v,
+        n: n,
+        }
+    }};
+    // fills an array with a value
+    // REVIEW: What if n is not an integer?
+    ($val:expr => $n: expr) => {{
+        let mut v = Vec::new();
+        for _ in 0..($n * ( $n + 1 ) / 2) {
+            v.push($val)
+        }
+        Symmetric{
+            data: v,
+            n: $n,
+        }
+    }}
+}

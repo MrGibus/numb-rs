@@ -121,7 +121,7 @@ impl<T: Numeric> IndexMut<usize> for Dense<T> {
 impl<T: Numeric> Display for Dense<T>{
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         // closure to format each element
-        let precision = f.precision().unwrap_or_else(|| 2);
+        let precision = f.precision().unwrap_or( 2);
         let format = |x: &T| format!("{:.*}", precision ,x);
 
         // first run through to find the max length of each formatted element
@@ -140,7 +140,7 @@ impl<T: Numeric> Display for Dense<T>{
         // also adding a new line when each element divides evenly into the number of rows
         let string = strings.iter().enumerate().fold(
             "".to_string(), | mut s, (i, x)| {
-                if i % self.n == 0 && i != 0 {s.push_str("\n")}
+                if i % self.n == 0 && i != 0 {s.push('\n')}
                 format!("{}{:>width$}", s, x, width=max)
             });
 

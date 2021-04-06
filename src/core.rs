@@ -2,12 +2,13 @@
 //!
 
 //◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼ # PREAMBLE ◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼
-use std::ops::{Index, IndexMut, Mul};
+use std::ops::{Index, Mul};
 
 use crate::utilities::*;
 use crate::matrix::*;
 use crate::numerics::*;
 use crate::dense::Dense;
+use crate::symmetric::Symmetric;
 
 //◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼ # MATRIX  ◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼
 
@@ -23,38 +24,7 @@ pub struct MatrixT<'a, T> {
     pub n: &'a usize,
 }
 
-/// A struct to represent a symmetrical matrix of nxn
-/// The struct does not have an 'm' value
-#[derive(Debug, Clone)]
-pub struct MatrixS<T> {
-    /// represents the data of the symmetric matrix:
-    /// Note that the number of elements is a triangular number such that N = n(n+1)/2
-    pub data: Vec<T>,
-    /// the side dimensions of the matrix
-    pub n: usize,
-}
-
-impl<T: Numeric> Matrix for MatrixS<T> {
-    type Element = T;
-
-    fn len(&self) -> usize {
-        self.data.len()
-    }
-
-    fn size(&self) -> [usize; 2] {
-        [self.n, self.n]
-    }
-
-    fn is_empty(&self) -> bool {
-        self.data.is_empty()
-    }
-
-    fn into_vec(self) -> Vec<T> {
-        self.data
-    }
-}
-
-impl<T: Numeric> Concatenate<Dense<T>, T> for MatrixS<T> {
+impl<T: Numeric> Concatenate<Dense<T>, T> for Symmetric<T> {
     fn concatenate(self, other: Dense<T>) -> Result<Dense<T>, MatrixError> {
         // check that matrices are compatible
         match self.n == other.m {
@@ -82,10 +52,10 @@ impl<T: Numeric> Concatenate<Dense<T>, T> for MatrixS<T> {
     }
 }
 
-impl<T: Numeric> Mul<MatrixS<T>> for Dense<T> {
+impl<T: Numeric> Mul<Symmetric<T>> for Dense<T> {
     type Output = Result<Self, MatrixError>;
 
-    fn mul(self, other: MatrixS<T>) -> Self::Output {
+    fn mul(self, other: Symmetric<T>) -> Self::Output {
         if self.n != other.n {
             Err(MatrixError::Incompatibility)
         } else {
@@ -113,7 +83,7 @@ impl<T: Numeric> Mul<MatrixS<T>> for Dense<T> {
 /// It is important to note that the multiplication of two symmetric matrices will return a
 /// standard matric struct as the product of two symmetric matrices does not always result in
 /// a symmetric matrix as an output
-impl<T: Numeric> Mul<MatrixS<T>> for MatrixS<T> {
+impl<T: Numeric> Mul<Symmetric<T>> for Symmetric<T> {
     type Output = Result<Dense<T>, MatrixError>;
 
     fn mul(self, other: Self) -> Self::Output {
@@ -141,7 +111,7 @@ impl<T: Numeric> Mul<MatrixS<T>> for MatrixS<T> {
     }
 }
 
-impl<T: Numeric> Mul<Dense<T>> for MatrixS<T> {
+impl<T: Numeric> Mul<Dense<T>> for Symmetric<T> {
     type Output = Result<Dense<T>, MatrixError>;
 
     fn mul(self, other: Dense<T>) -> Self::Output {
@@ -233,31 +203,6 @@ impl<T> Index<[usize; 2]> for MatrixT<'_, T> {
     }
 }
 
-impl<T: Copy> Index<[usize; 2]> for MatrixS<T> {
-    type Output = T;
-
-    fn index(&self, idx: [usize; 2]) -> &T {
-        let x = if idx[0] > idx[1] {
-            idx[0] * (idx[0] + 1) / 2 + idx[1]
-        } else {
-            idx[1] * (idx[1] + 1) / 2 + idx[0]
-        };
-
-        &self.data[x]
-    }
-}
-
-impl<T: Numeric> IndexMut<[usize; 2]> for MatrixS<T> {
-    fn index_mut(&mut self, idx: [usize; 2]) -> &mut T {
-        let x = if idx[0] > idx[1] {
-            idx[0] * (idx[0] + 1) / 2 + idx[1]
-        } else {
-            idx[1] * (idx[1] + 1) / 2 + idx[0]
-        };
-
-        &mut self.data[x]
-    }
-}
 
 //◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼ # MACROS ◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼
 
@@ -320,7 +265,7 @@ macro_rules! impl_eq_int {
             }
         }
 
-        impl std::cmp::PartialEq<MatrixS<$int>> for MatrixS<$int> {
+        impl std::cmp::PartialEq<Symmetric<$int>> for Symmetric<$int> {
             fn eq(&self, other: &Self) -> bool {
                 if self.n != other.n {
                     return false;
@@ -330,7 +275,7 @@ macro_rules! impl_eq_int {
             }
         }
 
-        impl std::cmp::PartialEq<Dense<$int>> for MatrixS<$int> {
+        impl std::cmp::PartialEq<Dense<$int>> for Symmetric<$int> {
             fn eq(&self, other: &Dense<$int>) -> bool {
                 if self.n != other.m || self.n != other.n {
                     return false;
@@ -347,8 +292,8 @@ macro_rules! impl_eq_int {
             }
         }
 
-        impl std::cmp::PartialEq<MatrixS<$int>> for Dense<$int> {
-            fn eq(&self, other: &MatrixS<$int>) -> bool {
+        impl std::cmp::PartialEq<Symmetric<$int>> for Dense<$int> {
+            fn eq(&self, other: &Symmetric<$int>) -> bool {
                 if self.m != other.n || self.n != other.n {
                     return false;
                 } else {
@@ -366,7 +311,7 @@ macro_rules! impl_eq_int {
 
         impl std::cmp::Eq for Dense<$int> {}
         impl std::cmp::Eq for MatrixT<'_, $int> {}
-        impl std::cmp::Eq for MatrixS<$int> {}
+        impl std::cmp::Eq for Symmetric<$int> {}
     };
 }
 
@@ -470,71 +415,13 @@ macro_rules! impl_display_matrix_float {
     };
 }
 
-/// Creates a symmetrical matrix
-/// Note that the symmetrical matrix is of type MatrixS,
-/// The aim of this macro and associated struct is for saving space
-/// # example:
-/// ```
-/// # #[macro_use]
-/// # use numb_rs::*;
-///
-/// # fn main() {
-/// let a = symmat![
-/// 0;
-/// 1, 2;
-/// 3, 4, 5
-///
-/// ];
-///
-/// assert_eq!(a[[1, 2]], a[[2, 1]]);
-///
-/// // equivalent to:
-/// let b = mat![
-/// 0, 1, 3;
-/// 1, 2, 4;
-/// 3, 4, 5
-/// ];
-///
-/// assert_eq!(a, b);
-/// # }
-/// ```
-#[macro_export]
-macro_rules! symmat {
-    ($($($item:expr),+);+) => {{
-        let mut v = Vec::new();
-        let mut n = 0;
-        $(
-        $({
-            v.push($item);
-        })*
-            n += 1;
-        )*
-
-        MatrixS{
-        data: v,
-        n: n,
-        }
-    }};
-    // fills an array with a value
-    // REVIEW: What if n is not an integer?
-    ($val:expr => $n: expr) => {{
-        let mut v = Vec::new();
-        for _ in 0..($n * ( $n + 1 ) / 2) {
-            v.push($val)
-        }
-        MatrixS {
-            data: v,
-            n: $n,
-        }
-    }}
-}
 
 //◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼ # UTILITIES ◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼
 
-impl ApproxEq<MatrixS<f64>> for MatrixS<f64> {
+impl ApproxEq<Symmetric<f64>> for Symmetric<f64> {
     type Check = f64;
 
-    fn approx_eq(&self, other: &MatrixS<f64>, tolerance: Self::Check) -> bool {
+    fn approx_eq(&self, other: &Symmetric<f64>, tolerance: Self::Check) -> bool {
         if self.n != other.n {
             return false;
         }
@@ -549,7 +436,7 @@ impl ApproxEq<MatrixS<f64>> for MatrixS<f64> {
         true
     }
 
-    fn assert_approx_eq(&self, other: &MatrixS<f64>, tolerance: Self::Check) {
+    fn assert_approx_eq(&self, other: &Symmetric<f64>, tolerance: Self::Check) {
         if self.n != other.n {
             panic!(
                 r#"assertion failed: Dimension Inequality
@@ -581,10 +468,11 @@ impl ApproxEq<MatrixS<f64>> for MatrixS<f64> {
     }
 }
 
-impl ApproxEq<Dense<f64>> for MatrixS<f64> {
+impl ApproxEq<Dense<f64>> for Symmetric<f64> {
     type Check = f64;
 
     fn approx_eq(&self, other: &Dense<f64>, tolerance: Self::Check) -> bool {
+        #[allow(clippy::suspicious_operation_groupings)]
         if self.n != other.n || self.n != other.m {
             return false;
         }
@@ -599,7 +487,10 @@ impl ApproxEq<Dense<f64>> for MatrixS<f64> {
         true
     }
 
+
     fn assert_approx_eq(&self, other: &Dense<f64>, tolerance: Self::Check) {
+        // note symmetric does not have a self.m field as n=m in a symmetric matrix
+        #[allow(clippy::suspicious_operation_groupings)]
         if self.n != other.n || self.n != other.m {
             panic!(
                 r#"assertion failed: Dimension Inequality
@@ -631,10 +522,11 @@ impl ApproxEq<Dense<f64>> for MatrixS<f64> {
     }
 }
 
-impl ApproxEq<MatrixS<f64>> for Dense<f64> {
+impl ApproxEq<Symmetric<f64>> for Dense<f64> {
     type Check = f64;
 
-    fn approx_eq(&self, other: &MatrixS<f64>, tolerance: Self::Check) -> bool {
+    fn approx_eq(&self, other: &Symmetric<f64>, tolerance: Self::Check) -> bool {
+        #[allow(clippy::suspicious_operation_groupings)]
         if self.n != other.n || self.m != other.n {
             return false;
         }
@@ -649,7 +541,8 @@ impl ApproxEq<MatrixS<f64>> for Dense<f64> {
         true
     }
 
-    fn assert_approx_eq(&self, other: &MatrixS<f64>, tolerance: Self::Check) {
+    fn assert_approx_eq(&self, other: &Symmetric<f64>, tolerance: Self::Check) {
+        #[allow(clippy::suspicious_operation_groupings)]
         if self.n != other.n || self.m != other.n {
             panic!(
                 r#"assertion failed: Dimension Inequality
@@ -688,7 +581,7 @@ mod tests {
 
     #[test]
     fn sym_test() {
-        let sym = MatrixS {
+        let sym = Symmetric {
             data: vec![13, 26, 48, 29, 12, 66],
             n: 3,
         };
