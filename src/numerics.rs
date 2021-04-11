@@ -35,23 +35,19 @@ impl_multiple!(Numeric => {
 impl Numeric for f32 {const ZERO: Self = 0f32; const ONE: Self = 1f32; const TWO: Self = 2f32;}
 impl Numeric for f64 {const ZERO: Self = 0f64; const ONE: Self = 1f64; const TWO: Self = 2f64;}
 
-
-/// trait used for Primitive number classification
-pub trait Signed: Neg<Output=Self>{}
-
-impl_multiple!(Signed for i8 i16 i32 i64 i128 isize f32 f64);
+/// trait used for Primitive number classification of Integers
+pub trait SignedInt: Neg<Output=Self> + Integer{}
+impl_multiple!(SignedInt for i8 i16 i32 i64 i128 isize);
 
 pub trait Unsigned: Integer{}
-
 impl_multiple!(Unsigned for u8 u16 u32 u64 u128 usize);
 
-
-/// trait used for Primitive number classification
+/// trait used for Primitive number classification of Integers
 pub trait Integer: Numeric{}
 
 impl_multiple!(Integer for i8 i16 i32 i64 i128 isize u8 u16 u32 u64 u128 usize);
 
-pub trait Float: Numeric + Signed{
+pub trait Float: Numeric + Neg<Output=Self>{
     const EPSILON: Self;
 
     fn abs(self) -> Self;
@@ -87,12 +83,8 @@ impl Float for f32 {
 
 /// Greatest common denominator between two unsigned integers using steins algorithm
 /// wikipedia implementation, Research Gate has a number of 'improved' algorithms which could
-/// be implented later, but this will do as a placeholder.
+/// be implented later, but this will do as a placeholder. Only implemented for unsigned integers
 /// Note: Recursive
-// gcd(0, v) = v, because everything divides zero, and v is the largest number that divides v. Similarly, gcd(u, 0) = u.
-// gcd(2u, 2v) = 2·gcd(u, v)
-// gcd(2u, v) = gcd(u, v), if v is odd (2 is not a common divisor). Similarly, gcd(u, 2v) = gcd(u, v) if u is odd.
-// gcd(u, v) = gcd(|u − v|, min(u, v)), if u and v are both odd.
 pub fn gcd<T: Unsigned>(a: T, b: T) -> T {
     if a == b || b == T::ZERO{
         a
@@ -111,6 +103,13 @@ pub fn gcd<T: Unsigned>(a: T, b: T) -> T {
     } else {
             gcd((b - a) / T::TWO, a)
     }
+}
+
+/// lowest common multiple is the product of the two values
+/// divided by their greatest common denominator
+pub fn lcm<T: Unsigned>(a: T, b: T) -> T {
+    let gcd = gcd(a, b);
+    (a * b) / gcd
 }
 
 #[cfg(test)]
