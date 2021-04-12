@@ -268,24 +268,56 @@ impl<T: Numeric> Concatenate<Dense<T>, T> for Dense<T> {
     }
 }
 
-pub struct MatrixIterator<'a, T: Numeric> {
+pub struct DenseIntoIterator<'a, T: Numeric> {
     matrix: &'a Dense<T>,
     i: usize
 }
 
 impl<'a, T: Numeric> IntoIterator for &'a Dense<T> {
     type Item = &'a [T];
-    type IntoIter = MatrixIterator<'a, T>;
+    type IntoIter = DenseIntoIterator<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {
-        MatrixIterator {
+        DenseIntoIterator {
             matrix: self,
             i: 0
         }
     }
 }
 
-impl<'a, T: Numeric> Iterator for MatrixIterator<'a, T> {
+// pub struct DenseIterator<'a, T: Numeric> {
+//     matrix: &'a Dense<T>,
+//     i: usize
+// }
+//
+// impl<'a, T: Numeric> IntoIterator for Dense<T> {
+//     type Item = &'a[T];
+//
+//     type IntoIter = DenseIterator<'a, T>;
+//
+//     fn into_iter(self) -> Self::IntoIter {
+//         DenseIterator {
+//             matrix: & self,
+//             i: 0
+//         }
+//     }
+// }
+//
+// impl<'a, T: Numeric> Iterator for DenseIterator<'a, T> {
+//     type Item = &'a [T];
+//
+//     fn next(&mut self) -> Option<Self::Item> {
+//         if self.i < self.matrix.m {
+//             let out = &self.matrix[self.i];
+//             self.i += 1;
+//             Some(out)
+//         } else {
+//             None
+//         }
+//     }
+// }
+
+impl<'a, T: Numeric> Iterator for DenseIntoIterator<'a, T> {
     type Item = &'a [T];
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -425,7 +457,7 @@ mod tests {
         assert_eq!(i, eye3);
 
         let j: Dense<f64> = Dense::eye(2);
-        j.assert_approx_eq(&mat![1., 0.; 0., 1.], std::f64::EPSILON)
+        j.assert_approx_eq(&mat![1., 0.; 0., 1.], f64::EPSILON)
     }
 
     #[test]
@@ -591,5 +623,24 @@ mod tests {
             format!("{}", f),
             "   0.10   2.34   3.14\n   4.05  -5.20  -6.84\n   8.00   8.00   9.99".to_string()
         );
+    }
+
+    #[test]
+    fn iters() {
+        let a = mat![1, 2, 3; 4, 5, 6; 7, 8, 9];
+        a.into_iter().for_each(|x| println!("{:?}", x));
+
+        for x in &a{
+            println!("{:?}", x)
+        }
+
+        a.into_iter().enumerate().for_each(|x| println!("{:?}", x));
+        a.into_iter().for_each(|x| x.into_iter().for_each(|y| println!("{:?} {:?}", y, x)));
+
+        let b = vec![1, 2, 3];
+
+        for x in b{
+            println!("{}", x)
+        }
     }
 }
