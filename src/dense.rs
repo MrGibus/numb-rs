@@ -162,6 +162,13 @@ impl<T: Numeric> Dense<T> {
         }
     }
 
+    /// Very efficient way to transpose a single dimension matrix
+    pub fn swap_mn(&mut self){
+        unsafe {
+            std::ptr::swap(&mut self.m, &mut self.n)
+        }
+    }
+
     /// returns an identity matrix
     /// Will require a type
     pub fn eye(size: usize) -> Dense<T>
@@ -206,6 +213,17 @@ impl<T: Numeric> Dense<T> {
             m: &self.n,
             /// n is a reference to the 'm' column of the Matrix
             n: &self.m,
+        }
+    }
+}
+
+impl<T: Numeric> std::convert::From<Vec<T>> for Dense<T>{
+    fn from(data: Vec<T>) -> Self {
+        let n = data.len();
+        Dense{
+            data,
+            m: 1,
+            n,
         }
     }
 }
@@ -284,38 +302,6 @@ impl<'a, T: Numeric> IntoIterator for &'a Dense<T> {
         }
     }
 }
-
-// pub struct DenseIterator<'a, T: Numeric> {
-//     matrix: &'a Dense<T>,
-//     i: usize
-// }
-//
-// impl<'a, T: Numeric> IntoIterator for Dense<T> {
-//     type Item = &'a[T];
-//
-//     type IntoIter = DenseIterator<'a, T>;
-//
-//     fn into_iter(self) -> Self::IntoIter {
-//         DenseIterator {
-//             matrix: & self,
-//             i: 0
-//         }
-//     }
-// }
-//
-// impl<'a, T: Numeric> Iterator for DenseIterator<'a, T> {
-//     type Item = &'a [T];
-//
-//     fn next(&mut self) -> Option<Self::Item> {
-//         if self.i < self.matrix.m {
-//             let out = &self.matrix[self.i];
-//             self.i += 1;
-//             Some(out)
-//         } else {
-//             None
-//         }
-//     }
-// }
 
 impl<'a, T: Numeric> Iterator for DenseIntoIterator<'a, T> {
     type Item = &'a [T];
@@ -512,12 +498,31 @@ mod tests {
     }
 
     #[test]
+    fn from_vec_test(){
+        let v = vec![1, 2, 3, 4];
+
+        let m = Dense::from(v);
+
+        assert_eq!(m, mat![1, 2, 3, 4])
+
+    }
+
+    #[test]
     fn swap() {
         let mut a: Dense<u32> = mat![1,2,3;4,5,6;7,8,9];
         a.swap([0, 0], [2, 2]);
         a.swap([0, 1], [2, 0]);
         assert_eq!(a.data, vec![9, 7, 3, 4, 5, 6, 2, 8, 1]);
         assert_eq!(a, mat![9,7,3;4,5,6;2,8,1])
+    }
+
+    #[test]
+    fn mn_swap(){
+        let mut m = mat![1, 2, 3, 4, 5];
+        assert_ne!(m, mat![1; 2; 3; 4; 5]);
+
+        m.swap_mn();
+        assert_eq!(m, mat![1; 2; 3; 4; 5]);
     }
 
     #[test]
@@ -637,10 +642,5 @@ mod tests {
         a.into_iter().enumerate().for_each(|x| println!("{:?}", x));
         a.into_iter().for_each(|x| x.into_iter().for_each(|y| println!("{:?} {:?}", y, x)));
 
-        let b = vec![1, 2, 3];
-
-        for x in b{
-            println!("{}", x)
-        }
     }
 }
