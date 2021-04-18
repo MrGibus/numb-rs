@@ -1,4 +1,4 @@
-use numb_rs::{mat, Dense, solver::solve_dense};
+use numb_rs::{mat, Dense, solver::solve_dense, IntoCol};
 
 
 #[cfg(test)]
@@ -16,6 +16,9 @@ fn linear_algebra() {
     let a = mat![21., 10., -3.; 14., 6., 0.; 17., 12., -6.];
     let b = mat![122.; 91.; 110.];
 
+    println!("\nSolving ax=b\na:\n{}", a);
+    println!("b:\n{}", b);
+
     let solution = solve_dense(a, b).unwrap();
 
     let ans = vec![2., 10.5, 8.3333333333333];
@@ -29,5 +32,7 @@ fn linear_algebra() {
                 0.001, solution, ans
             )
        }
+
+    println!("x:\n{}", ans.into_col())
 }
 
