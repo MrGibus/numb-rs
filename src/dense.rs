@@ -162,6 +162,17 @@ impl<T: Numeric> Dense<T> {
         }
     }
 
+    /// method for creating a Dense matrix column from a vector
+    pub fn col_from_vec(v: Vec<T>) -> Self {
+        let len = v.len();
+
+        Dense{
+            data: v,
+            m: len,
+            n: 1,
+        }
+    }
+
     /// Very efficient way to transpose a single dimension matrix
     pub fn swap_mn(&mut self){
         unsafe {
@@ -225,6 +236,16 @@ impl<T: Numeric> std::convert::From<Vec<T>> for Dense<T>{
             m: 1,
             n,
         }
+    }
+}
+
+pub trait IntoCol<T: Numeric>{
+    fn into_col(self) -> Dense<T>;
+}
+
+impl<T: Numeric> IntoCol<T> for Vec<T>{
+    fn into_col(self) -> Dense<T> {
+        Dense::col_from_vec(self)
     }
 }
 
@@ -444,6 +465,23 @@ mod tests {
 
         let j: Dense<f64> = Dense::eye(2);
         j.assert_approx_eq(&mat![1., 0.; 0., 1.], f64::EPSILON)
+    }
+
+    #[test]
+    fn col_from_vec_test(){
+        let v = vec![1, 2, 3, 4 ,5];
+        let ans = mat![1; 2; 3; 4; 5];
+
+        let m = Dense::col_from_vec(v);
+
+        assert_eq!(ans, m);
+
+        let v = vec![7, 3, 1, 6, 5];
+        let ans = mat![7; 3; 1; 6; 5];
+
+        let m = v.into_col();
+
+        assert_eq!(ans, m);
     }
 
     #[test]
