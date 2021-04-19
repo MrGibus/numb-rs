@@ -227,11 +227,11 @@ impl<T: Numeric> Dense<T> {
         }
     }
 
-    pub fn concatenate_vec(self, other: Vec<T>) -> Result<Dense<T>, MatrixError> {
+    pub fn concatenate_vec(self, other: &[T]) -> Result<Dense<T>, MatrixError> {
         match self.m == other.len() {
             true => {
                 let mut new: Dense<T> = Dense::with_capacity(
-                    self.data.capacity() + other.capacity()
+                    self.data.capacity() + other.len()
                 );
 
                 new.n = self.n + 1;
@@ -614,7 +614,7 @@ mod tests {
         let b = vec![5, 6];
         let ans = mat![1, 2, 5; 3, 4, 6];
 
-        assert_eq!(a.concatenate_vec(b).unwrap(), ans);
+        assert_eq!(a.concatenate_vec(&b).unwrap(), ans);
     }
 
     mod ops {

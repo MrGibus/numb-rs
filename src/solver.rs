@@ -88,7 +88,7 @@ pub fn solve_dense_vec<T: Float>
     (a: Dense<T>, b: Vec<T>)-> Result<Vec<T>, MatrixError>{
 
     // Augmented Matrix A|B
-    let aug = a.concatenate_vec(b)?;
+    let aug = a.concatenate_vec(&b)?;
 
     solve_augmented(aug)
 }
