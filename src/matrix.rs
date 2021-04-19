@@ -51,8 +51,6 @@ pub trait Matrix: std::ops::Index<[usize; 2]> + std::ops::IndexMut<[usize; 2]> {
     fn into_vec(self) -> Vec<Self::Element>;
 }
 
-
-
 /// Required for linear algebra
 pub trait RowOps<T: Copy + MulAssign + AddAssign + Mul<Output=T>> {
     /// Scales all elements in a given row

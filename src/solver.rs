@@ -84,6 +84,15 @@ pub fn solve_dense<M: Matrix<Element=T> + Concatenate<O, T>,
     solve_augmented(aug)
 }
 
+pub fn solve_dense_vec<T: Float>
+    (a: Dense<T>, b: Vec<T>)-> Result<Vec<T>, MatrixError>{
+
+    // Augmented Matrix A|B
+    let aug = a.concatenate_vec(b)?;
+
+    solve_augmented(aug)
+}
+
 #[cfg(test)]
 mod tests {
     use crate::dense::*;
@@ -130,6 +139,34 @@ mod tests {
         let x = vec![-1.067913, -0.483673, -4.108475, 0.731184, -1.802726, -0.090753];
 
         let ans = solve_dense(a, b).unwrap();
+
+       if x.iter().enumerate()
+            .any(|(i, x)| !x.approx_eq(&ans[i], 0.001)) {
+            panic!(
+                r#"assertion failed: `(left ~= right) ± `{:?}`
+    left: `{:?}`
+    right: `{:?}`"#,
+                0.001, x, ans
+            )
+       }
+    }
+
+    #[test]
+    fn dense_solver_vec() {
+
+        let a = mat![
+            1., -2., 1., 7., 0., -1.;
+            2., -1., -3., -2., 4., 0.;
+            7., 4., -2., 14., 3., 7.;
+            8., 2., -3., -3., 1., -2.;
+            3., 5., -2., -1., 3., -6.;
+            4., -7., 1., 10., 3., -1.];
+
+        let b = vec![1., 2., 3., -1., -3., -3.];
+
+        let x = vec![-1.067913, -0.483673, -4.108475, 0.731184, -1.802726, -0.090753];
+
+        let ans = solve_dense_vec(a, b).unwrap();
 
        if x.iter().enumerate()
             .any(|(i, x)| !x.approx_eq(&ans[i], 0.001)) {

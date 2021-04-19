@@ -15,8 +15,8 @@ pub mod symmetric;
 pub mod utilities;
 pub mod matrix;
 pub mod solver;
-mod fraction;
-mod numerics;
+pub mod fraction;
+pub mod numerics;
 mod fixed;
 
 pub use crate::core::*;

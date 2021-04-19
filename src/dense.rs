@@ -226,6 +226,28 @@ impl<T: Numeric> Dense<T> {
             n: &self.m,
         }
     }
+
+    pub fn concatenate_vec(self, other: Vec<T>) -> Result<Dense<T>, MatrixError> {
+        match self.m == other.len() {
+            true => {
+                let mut new: Dense<T> = Dense::with_capacity(
+                    self.data.capacity() + other.capacity()
+                );
+
+                new.n = self.n + 1;
+                new.m = self.m;
+
+                for i in 0..self.m {
+                    for j in 0..self.n {
+                        new.data.push(self[[i, j]]);
+                    }
+                    new.data.push(other[i])
+                }
+                Ok(new)
+            },
+            false => Err(MatrixError::Incompatibility),
+        }
+    }
 }
 
 impl<T: Numeric> std::convert::From<Vec<T>> for Dense<T>{
@@ -584,6 +606,15 @@ mod tests {
         let ans = mat![1, 5, 9, 13; 2, 6, 10, 14; 3, 7, 11, 15; 4, 8, 12, 16];
 
         assert_eq!(a.concatenate(b).unwrap(), ans);
+    }
+
+    #[test]
+    fn concatenate_vec(){
+        let a = mat![1, 2; 3, 4];
+        let b = vec![5, 6];
+        let ans = mat![1, 2, 5; 3, 4, 6];
+
+        assert_eq!(a.concatenate_vec(b).unwrap(), ans);
     }
 
     mod ops {
