@@ -7,6 +7,7 @@ use crate::utilities::ApproxEq;
 use crate::MatrixT;
 
 use std::fmt::{Display, Debug};
+use std::borrow::Cow;
 
 /// a dense matrix stores all the values of the matrix
 /// a matrix is a vec with dimensional properties (m x n)
@@ -408,6 +409,53 @@ impl<T: Numeric> Mul<Dense<T>> for Dense<T> {
     }
 }
 
+/// There has to be an elegent way to do this, asking on SO will certainly flag duplicate questions
+/// so why even bother.
+/// - Macros don't really help (about same amount of code)
+/// - Can't use Borrow trait as it's a standard op and it always takes by value
+/// - Cow runs into a lot of errors
+/// 'type parameter `M` must be covered by another type when it appears before the first local type (`Dense<f64>`)'
+/// A DOT trait would be sensible
+impl<T: Numeric> Mul<&Dense<T>> for Dense<T> {
+    type Output = Result<Self, MatrixError>;
+
+    fn mul(self, other: &Self) -> Self::Output {
+        if self.n != other.m {
+            Err(MatrixError::Incompatibility)
+        } else {
+            let mut out: Dense<T> = Dense::with_capacity(self.m * other.n);
+            out.m = self.m;
+            out.n = other.n;
+
+            unsafe {
+                out.data.set_len(out.m * out.n);
+            }
+
+            for i in 0..out.m {
+                for j in 0..out.n {
+                    out[[i, j]] = T::ZERO;
+                    for k in 0..self.n {
+                        out[[i, j]] += self[[i, k]] * other[[k, j]]
+                    }
+                }
+            }
+            Ok(out)
+        }
+    }
+}
+
+impl<'a, T:Numeric> From<Dense<T>> for Cow<'a, Dense<T>>{
+    fn from(m: Dense<T>) -> Self {
+        Cow::Owned(m)
+    }
+}
+
+impl<'a, T:Numeric> From<&'a Dense<T>> for Cow<'a, Dense<T>>{
+    fn from(m: &'a Dense<T>) -> Self {
+        Cow::Borrowed(m)
+    }
+}
+
 impl ApproxEq<Dense<f64>> for Dense<f64> {
     type Check = f64;
 
@@ -653,6 +701,16 @@ mod tests {
             let a = mat![ 1, 3, 5; 7, 4, 6];
             let b = mat![4, 5; 2, 8; 4, 1];
             let c = a * b;
+            let ans = mat![30, 34; 60, 73];
+            assert!(c.is_ok());
+            assert_eq!(c.unwrap(), ans);
+        }
+
+        #[test]
+        fn test_fkn_borrows(){
+            let a = mat![ 1, 3, 5; 7, 4, 6];
+            let b = mat![4, 5; 2, 8; 4, 1];
+            let c = a * &b;
             let ans = mat![30, 34; 60, 73];
             assert!(c.is_ok());
             assert_eq!(c.unwrap(), ans);
