@@ -1,5 +1,4 @@
-use numb_rs::{mat, Dense, solver::solve_dense, IntoCol};
-
+use numb_rs::{mat, solver::solve_dense, Dense, IntoCol};
 
 #[cfg(test)]
 use numb_rs::utilities::ApproxEq; // only for tests
@@ -23,16 +22,18 @@ fn linear_algebra() {
 
     let ans = vec![2., 10.5, 8.3333333333333];
 
-   if solution.iter().enumerate()
-            .any(|(i, x)| !x.approx_eq(&ans[i], 0.001)) {
-            panic!(
-                r#"assertion failed: `(left ~= right) ± `{:?}`
+    if solution
+        .iter()
+        .enumerate()
+        .any(|(i, x)| !x.approx_eq(&ans[i], 0.001))
+    {
+        panic!(
+            r#"assertion failed: `(left ~= right) ± `{:?}`
     left: `{:?}`
     right: `{:?}`"#,
-                0.001, solution, ans
-            )
-       }
+            0.001, solution, ans
+        )
+    }
 
     println!("x:\n{}", ans.into_col())
 }
-
