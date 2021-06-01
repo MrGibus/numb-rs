@@ -84,7 +84,7 @@ pub fn solve_dense<M: Matrix<Element = T> + Concatenate<O, T>, O: Matrix<Element
     solve_augmented(aug)
 }
 
-pub fn solve_dense_vec<T: Float>(a: Dense<T>, b: Vec<T>) -> Result<Vec<T>, MatrixError> {
+pub fn solve_dense_vec<T: Float>(a: Dense<T>, b: &[T]) -> Result<Vec<T>, MatrixError> {
     // Augmented Matrix A|B
     let aug = a.concatenate_vec(&b)?;
 
@@ -172,7 +172,7 @@ mod tests {
             -1.067913, -0.483673, -4.108475, 0.731184, -1.802726, -0.090753,
         ];
 
-        let ans = solve_dense_vec(a, b).unwrap();
+        let ans = solve_dense_vec(a, &b).unwrap();
 
         if x.iter()
             .enumerate()
