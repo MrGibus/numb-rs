@@ -58,20 +58,21 @@ impl ApproxEq<f32> for f32 {
     }
 }
 
-impl ApproxEq<Vec<f64>> for Vec<f64>{
+impl ApproxEq<Vec<f64>> for Vec<f64> {
     type Check = f64;
 
     fn approx_eq(&self, other: &Vec<f64>, tolerance: Self::Check) -> bool {
         self.iter()
             .zip(other)
             .any(|(&a, &b)| (a - b).abs() > tolerance)
-        }
+    }
 
     fn assert_approx_eq(&self, other: &Vec<f64>, tolerance: Self::Check) {
-
-        if self.iter()
+        if self
+            .iter()
             .zip(other)
-            .any(|(&a, &b)| (a - b).abs() > tolerance) {
+            .any(|(&a, &b)| (a - b).abs() > tolerance)
+        {
             panic!(
                 r#"assertion failed: `(left ~= right) ± `{:?}`
     left: `{:?}`
@@ -101,7 +102,7 @@ mod tests {
     }
 
     #[test]
-    fn approx_vec(){
+    fn approx_vec() {
         let a = vec![1.0001, 1.0003, 1.00006];
         let b = vec![1.0001, 1.0003, 1.0001];
 

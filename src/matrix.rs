@@ -5,9 +5,9 @@
 // impl<T: Numeric> Matrix
 
 use crate::dense::Dense;
-use std::fmt::Debug;
-use std::ops::{MulAssign, AddAssign, Mul};
 use crate::numerics::Numeric;
+use std::fmt::Debug;
+use std::ops::{AddAssign, Mul, MulAssign};
 
 //◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼ # ERRORS  ◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼
 /// an error type specific to matrices
@@ -30,7 +30,6 @@ pub enum MatrixError {
     NumericInstability,
 }
 
-
 //◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼ # TRAITS ◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼
 pub trait Matrix: std::ops::Index<[usize; 2]> + std::ops::IndexMut<[usize; 2]> {
     /// The type of matrix elements
@@ -52,7 +51,7 @@ pub trait Matrix: std::ops::Index<[usize; 2]> + std::ops::IndexMut<[usize; 2]> {
 }
 
 /// Required for linear algebra
-pub trait RowOps<T: Copy + MulAssign + AddAssign + Mul<Output=T>> {
+pub trait RowOps<T: Copy + MulAssign + AddAssign + Mul<Output = T>> {
     /// Scales all elements in a given row
     fn scale_row(&mut self, i: usize, scale: T);
 
@@ -62,10 +61,10 @@ pub trait RowOps<T: Copy + MulAssign + AddAssign + Mul<Output=T>> {
     fn add_rows(&mut self, base: usize, row_to_add: usize, scale: T);
 
     /// swaps two rows
-    fn swap_rows(&mut self, a: usize, b:usize);
+    fn swap_rows(&mut self, a: usize, b: usize);
 }
 
-pub trait Concatenate<M: Matrix<Element=T>, T: Numeric> {
+pub trait Concatenate<M: Matrix<Element = T>, T: Numeric> {
     /// merges two matrices into a new matrix
     fn concatenate(self, other: M) -> Result<Dense<T>, MatrixError>;
 }

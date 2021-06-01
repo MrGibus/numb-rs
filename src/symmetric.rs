@@ -1,7 +1,7 @@
-use crate::numerics::Numeric;
 use crate::matrix::Matrix;
-use std::ops::{Index, IndexMut};
+use crate::numerics::Numeric;
 use std::fmt::Display;
+use std::ops::{Index, IndexMut};
 
 /// A struct to represent a symmetrical matrix of nxn
 /// The struct does not have an 'm' value
@@ -60,33 +60,38 @@ impl<T: Numeric> IndexMut<[usize; 2]> for Symmetric<T> {
     }
 }
 
-impl<T: Numeric> Display for Symmetric<T>{
+impl<T: Numeric> Display for Symmetric<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         // closure to format each element
-        let precision = f.precision().unwrap_or( 2);
-        let format = |x: &T| format!("{:.*}", precision ,x);
+        let precision = f.precision().unwrap_or(2);
+        let format = |x: &T| format!("{:.*}", precision, x);
 
         // first run through to find the max length of each formatted element
         // elements are stored in a vec as we go
         let mut strings: Vec<String> = vec![];
-        let max = self.data
-            .iter()
-            .fold(0, |max: usize, x:&T| {
-                let s = format(x);
-                let disp_len = s.len();
-                strings.push(s);
-                if max > disp_len {max} else {disp_len}
-            }) + 2;
+        let max = self.data.iter().fold(0, |max: usize, x: &T| {
+            let s = format(x);
+            let disp_len = s.len();
+            strings.push(s);
+            if max > disp_len {
+                max
+            } else {
+                disp_len
+            }
+        }) + 2;
 
         // iterate through the stored vector folding each formatted element into a final string
         // also adding a new line when each element divides evenly into the number of rows
-        let string = strings.iter().enumerate().fold(
-            "".to_string(), | mut s, (i, x)| {
-                if i % self.n == 0 && i != 0 {s.push('\n')}
-                format!("{}{:>width$}", s, x, width=max)
+        let string = strings
+            .iter()
+            .enumerate()
+            .fold("".to_string(), |mut s, (i, x)| {
+                if i % self.n == 0 && i != 0 {
+                    s.push('\n')
+                }
+                format!("{}{:>width$}", s, x, width = max)
             });
 
         write!(f, "{}", string)
     }
 }
-

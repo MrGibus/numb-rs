@@ -4,14 +4,13 @@
 //◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼ # PREAMBLE ◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼
 use std::ops::{Index, Mul};
 
-use crate::utilities::*;
+use crate::dense::Dense;
 use crate::matrix::*;
 use crate::numerics::*;
-use crate::dense::Dense;
 use crate::symmetric::Symmetric;
+use crate::utilities::*;
 
 //◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼ # MATRIX  ◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼
-
 
 /// This is only a view to the underlying data
 #[derive(Debug, Clone)]
@@ -30,9 +29,7 @@ impl<T: Numeric> Concatenate<Dense<T>, T> for Symmetric<T> {
         match self.n == other.m {
             true => {
                 // create a matrix with a capacity
-                let mut new: Dense<T> = Dense::with_capacity(
-                    self.n * self.n + 1
-                );
+                let mut new: Dense<T> = Dense::with_capacity(self.n * self.n + 1);
                 new.n = self.n + other.n;
                 new.m = self.n;
 
@@ -40,7 +37,7 @@ impl<T: Numeric> Concatenate<Dense<T>, T> for Symmetric<T> {
                     for j in 0..self.n {
                         new.data.push(self[[i, j]]);
                     }
-                    for j in 0..other.n{
+                    for j in 0..other.n {
                         new.data.push(other[[i, j]])
                     }
                 }
@@ -203,7 +200,6 @@ impl<T> Index<[usize; 2]> for MatrixT<'_, T> {
     }
 }
 
-
 //◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼ # MACROS ◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼
 
 /// Matrix and MatrixT equality implementation macro for integers
@@ -327,7 +323,6 @@ impl_eq_int!(i32);
 impl_eq_int!(i64);
 impl_eq_int!(i128);
 
-
 /// Integer display implementation macro for Matrix and MatrixT
 macro_rules! impl_display_matrix_int {
     ($int:ty) => {
@@ -415,7 +410,6 @@ macro_rules! impl_display_matrix_float {
     };
 }
 
-
 //◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼ # UTILITIES ◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼
 
 impl ApproxEq<Symmetric<f64>> for Symmetric<f64> {
@@ -486,7 +480,6 @@ impl ApproxEq<Dense<f64>> for Symmetric<f64> {
         }
         true
     }
-
 
     fn assert_approx_eq(&self, other: &Dense<f64>, tolerance: Self::Check) {
         // note symmetric does not have a self.m field as n=m in a symmetric matrix
@@ -761,6 +754,5 @@ mod tests {
 
             assert_eq!((a * b).unwrap(), c);
         }
-
     }
 }

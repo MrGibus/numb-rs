@@ -1,17 +1,17 @@
-use crate::matrix::{Matrix, MatrixError, Concatenate, RowOps};
-use crate::numerics::Float;
 use crate::dense::Dense;
+use crate::matrix::{Concatenate, Matrix, MatrixError, RowOps};
+use crate::numerics::Float;
 
 /// TODO: Cholesky decomposition for positive definite matrices
 /// TODO: Remove the column limit and augment the indentity matrix to find the inverse
 
 /// Gauss-Jordan Elimination to solve a system of linear equations where Ax=B
 /// Applies partial pivoting for numerical stability
-pub fn solve_augmented<T: Float>(mut augmented: Dense<T>) -> Result<Vec<T>, MatrixError>{
+pub fn solve_augmented<T: Float>(mut augmented: Dense<T>) -> Result<Vec<T>, MatrixError> {
     let [nrows, ncols] = augmented.size();
 
     if ncols != nrows + 1 {
-        return Err(MatrixError::Incompatibility)
+        return Err(MatrixError::Incompatibility);
     }
 
     let mut pivot: Option<usize> = None;
@@ -20,7 +20,7 @@ pub fn solve_augmented<T: Float>(mut augmented: Dense<T>) -> Result<Vec<T>, Matr
     for i in 0..nrows {
         // Compare current pivot with others below
         let mut max = augmented[[i, i]].abs();
-        for j in i+1..nrows {
+        for j in i + 1..nrows {
             let check = augmented[[j, i]].abs();
             if check > max + T::EPSILON {
                 max = check;
@@ -29,7 +29,7 @@ pub fn solve_augmented<T: Float>(mut augmented: Dense<T>) -> Result<Vec<T>, Matr
         }
 
         // swap the pivot
-        if let Some(p) = pivot{
+        if let Some(p) = pivot {
             // Only perform the row swap if the increase is significant
             // REVIEW: Does this actually improve performance or have an impact on numeric stability?
             // What factor should be used?
@@ -37,14 +37,14 @@ pub fn solve_augmented<T: Float>(mut augmented: Dense<T>) -> Result<Vec<T>, Matr
                 augmented.swap_rows(i, p)
             }
         } else if augmented[[i, i]] == T::ZERO {
-            return Err(MatrixError::Singularity)
+            return Err(MatrixError::Singularity);
         } else if augmented[[i, i]] < T::EPSILON * T::from_f32(100.) {
             // values very close to zero may cause issues
             // 100 is an arbitrary value atm.
-            return Err(MatrixError::NumericInstability)
+            return Err(MatrixError::NumericInstability);
         }
 
-        for j in i+1..nrows {
+        for j in i + 1..nrows {
             let scale = augmented[[j, i]] / augmented[[i, i]];
             augmented.add_rows(j, i, -scale);
         }
@@ -70,12 +70,12 @@ pub fn solve_augmented<T: Float>(mut augmented: Dense<T>) -> Result<Vec<T>, Matr
 
 /// Gauss-Jordan elim + Augmentation
 // Implemented for all MatrixVariant where the element is f64
-pub fn solve_dense<M: Matrix<Element=T> + Concatenate<O, T>,
-    O: Matrix<Element=T>, T: Float>
-    (a: M, b: O)-> Result<Vec<T>, MatrixError>{
-
-    if b.size()[1] != 1{
-        return Err(MatrixError::Incompatibility)
+pub fn solve_dense<M: Matrix<Element = T> + Concatenate<O, T>, O: Matrix<Element = T>, T: Float>(
+    a: M,
+    b: O,
+) -> Result<Vec<T>, MatrixError> {
+    if b.size()[1] != 1 {
+        return Err(MatrixError::Incompatibility);
     }
 
     // Augmented Matrix A|B
@@ -84,9 +84,7 @@ pub fn solve_dense<M: Matrix<Element=T> + Concatenate<O, T>,
     solve_augmented(aug)
 }
 
-pub fn solve_dense_vec<T: Float>
-    (a: Dense<T>, b: Vec<T>)-> Result<Vec<T>, MatrixError>{
-
+pub fn solve_dense_vec<T: Float>(a: Dense<T>, b: &[T]) -> Result<Vec<T>, MatrixError> {
     // Augmented Matrix A|B
     let aug = a.concatenate_vec(&b)?;
 
@@ -95,9 +93,9 @@ pub fn solve_dense_vec<T: Float>
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::dense::*;
     use crate::symmetric::Symmetric;
-    use super::*;
     use crate::utilities::ApproxEq;
 
     #[test]
@@ -112,20 +110,23 @@ mod tests {
 
         let ans = solve_dense(a, b).unwrap();
 
-        if x.iter().enumerate()
-            .any(|(i, x)| !x.approx_eq(&ans[i], f64::EPSILON)) {
+        if x.iter()
+            .enumerate()
+            .any(|(i, x)| !x.approx_eq(&ans[i], f64::EPSILON))
+        {
             panic!(
                 r#"assertion failed: `(left ~= right) ± `{:?}`
     left: `{:?}`
     right: `{:?}`"#,
-                f64::EPSILON, x, ans
+                f64::EPSILON,
+                x,
+                ans
             )
         }
     }
 
     #[test]
     fn dense_solver_b() {
-
         let a = mat![
             1., -2., 1., 7., 0., -1.;
             2., -1., -3., -2., 4., 0.;
@@ -136,24 +137,27 @@ mod tests {
 
         let b = mat![1.; 2.; 3.; -1.; -3.; -3.];
 
-        let x = vec![-1.067913, -0.483673, -4.108475, 0.731184, -1.802726, -0.090753];
+        let x = vec![
+            -1.067913, -0.483673, -4.108475, 0.731184, -1.802726, -0.090753,
+        ];
 
         let ans = solve_dense(a, b).unwrap();
 
-       if x.iter().enumerate()
-            .any(|(i, x)| !x.approx_eq(&ans[i], 0.001)) {
+        if x.iter()
+            .enumerate()
+            .any(|(i, x)| !x.approx_eq(&ans[i], 0.001))
+        {
             panic!(
                 r#"assertion failed: `(left ~= right) ± `{:?}`
     left: `{:?}`
     right: `{:?}`"#,
                 0.001, x, ans
             )
-       }
+        }
     }
 
     #[test]
     fn dense_solver_vec() {
-
         let a = mat![
             1., -2., 1., 7., 0., -1.;
             2., -1., -3., -2., 4., 0.;
@@ -164,19 +168,23 @@ mod tests {
 
         let b = vec![1., 2., 3., -1., -3., -3.];
 
-        let x = vec![-1.067913, -0.483673, -4.108475, 0.731184, -1.802726, -0.090753];
+        let x = vec![
+            -1.067913, -0.483673, -4.108475, 0.731184, -1.802726, -0.090753,
+        ];
 
-        let ans = solve_dense_vec(a, b).unwrap();
+        let ans = solve_dense_vec(a, &b).unwrap();
 
-       if x.iter().enumerate()
-            .any(|(i, x)| !x.approx_eq(&ans[i], 0.001)) {
+        if x.iter()
+            .enumerate()
+            .any(|(i, x)| !x.approx_eq(&ans[i], 0.001))
+        {
             panic!(
                 r#"assertion failed: `(left ~= right) ± `{:?}`
     left: `{:?}`
     right: `{:?}`"#,
                 0.001, x, ans
             )
-       }
+        }
     }
 
     #[test]
@@ -210,15 +218,17 @@ mod tests {
 
         let ans = solve_dense(a, b).unwrap();
 
-       if x.iter().enumerate()
-            .any(|(i, x)| !x.approx_eq(&ans[i], 0.001)) {
+        if x.iter()
+            .enumerate()
+            .any(|(i, x)| !x.approx_eq(&ans[i], 0.001))
+        {
             panic!(
                 r#"assertion failed: `(left ~= right) ± `{:?}`
     left: `{:?}`
     right: `{:?}`"#,
                 0.001, x, ans
             )
-       }
+        }
     }
 
     #[test]
@@ -232,13 +242,17 @@ mod tests {
 
         let ans = solve_augmented(aug).unwrap();
 
-        if x.iter().enumerate()
-            .any(|(i, x)| !x.approx_eq(&ans[i], f64::EPSILON)) {
+        if x.iter()
+            .enumerate()
+            .any(|(i, x)| !x.approx_eq(&ans[i], f64::EPSILON))
+        {
             panic!(
                 r#"assertion failed: `(left ~= right) ± `{:?}`
     left: `{:?}`
     right: `{:?}`"#,
-                f64::EPSILON, x, ans
+                f64::EPSILON,
+                x,
+                ans
             )
         }
     }

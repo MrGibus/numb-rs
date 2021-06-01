@@ -11,17 +11,17 @@ mod macros;
 mod core;
 
 pub mod dense;
+mod fixed;
+pub mod fraction;
+pub mod matrix;
+pub mod numerics;
+pub mod solver;
 pub mod symmetric;
 pub mod utilities;
-pub mod matrix;
-pub mod solver;
-pub mod fraction;
-pub mod numerics;
-mod fixed;
 
 pub use crate::core::*;
-pub use crate::macros::*;
 pub use crate::dense::*;
+pub use crate::macros::*;
 // pub use crate::symmetric::*;
 // pub use crate::utilities::*;
 // pub use crate::solver::*;
