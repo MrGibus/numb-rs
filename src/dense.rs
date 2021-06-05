@@ -439,6 +439,63 @@ impl<T: Numeric> Mul<&Dense<T>> for Dense<T> {
     }
 }
 
+impl<T: Numeric> Mul<Dense<T>> for &Dense<T> {
+    type Output = Result<Dense<T>, MatrixError>;
+
+    fn mul(self, other: Dense<T>) -> Self::Output {
+        if self.n != other.m {
+            Err(MatrixError::Incompatibility)
+        } else {
+            let mut out: Dense<T> = Dense::with_capacity(self.m * other.n);
+            out.m = self.m;
+            out.n = other.n;
+
+            unsafe {
+                out.data.set_len(out.m * out.n);
+            }
+
+            for i in 0..out.m {
+                for j in 0..out.n {
+                    out[[i, j]] = T::ZERO;
+                    for k in 0..self.n {
+                        out[[i, j]] += self[[i, k]] * other[[k, j]]
+                    }
+                }
+            }
+            Ok(out)
+        }
+    }
+}
+
+
+impl<T: Numeric> Mul<&Dense<T>> for &Dense<T> {
+    type Output = Result<Dense<T>, MatrixError>;
+
+    fn mul(self, other: &Dense<T>) -> Self::Output {
+        if self.n != other.m {
+            Err(MatrixError::Incompatibility)
+        } else {
+            let mut out: Dense<T> = Dense::with_capacity(self.m * other.n);
+            out.m = self.m;
+            out.n = other.n;
+
+            unsafe {
+                out.data.set_len(out.m * out.n);
+            }
+
+            for i in 0..out.m {
+                for j in 0..out.n {
+                    out[[i, j]] = T::ZERO;
+                    for k in 0..self.n {
+                        out[[i, j]] += self[[i, k]] * other[[k, j]]
+                    }
+                }
+            }
+            Ok(out)
+        }
+    }
+}
+
 impl<'a, T: Numeric> From<Dense<T>> for Cow<'a, Dense<T>> {
     fn from(m: Dense<T>) -> Self {
         Cow::Owned(m)
@@ -696,6 +753,26 @@ mod tests {
             let b = mat![4, 5; 2, 8; 4, 1];
             let c = a * b;
             let ans = mat![30, 34; 60, 73];
+            assert!(c.is_ok());
+            assert_eq!(c.unwrap(), ans);
+        }
+
+        #[test]
+        fn matrix_mul_refs() {
+            let a = mat![ 1, 3, 5; 7, 4, 6];
+            let b = mat![4, 5; 2, 8; 4, 1];
+            let ans = mat![30, 34; 60, 73];
+
+            let c = &a * &b;
+            assert!(c.is_ok());
+            assert_eq!(c.unwrap(), ans);
+
+            let c = &a * b;
+            assert!(c.is_ok());
+            assert_eq!(c.unwrap(), ans);
+
+            let b = mat![4, 5; 2, 8; 4, 1];
+            let c = a * &b;
             assert!(c.is_ok());
             assert_eq!(c.unwrap(), ans);
         }
