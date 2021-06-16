@@ -1,7 +1,8 @@
-use crate::matrix::Matrix;
+use crate::matrix::{Matrix, MatrixError};
 use crate::numerics::Numeric;
 use std::fmt::Display;
-use std::ops::{Index, IndexMut};
+use std::ops::{Index, IndexMut, Mul};
+use crate::Dense;
 
 /// A struct to represent a symmetrical matrix of nxn
 /// The struct does not have an 'm' value
@@ -93,5 +94,73 @@ impl<T: Numeric> Display for Symmetric<T> {
             });
 
         write!(f, "{}", string)
+    }
+}
+
+impl<T: Numeric> Mul<T> for Symmetric<T>{
+    type Output = Self;
+
+    fn mul(self, scalar: T) -> Self {
+        let v: Vec<T> = self.data.into_iter().map(|x| x* scalar).collect();
+
+        Symmetric { data: v, ..self}
+    }
+}
+
+impl<T: Numeric> Mul<&Dense<T>> for &Symmetric<T>{
+    type Output = Result<Dense<T>, MatrixError>;
+
+    fn mul(self, rhs: &Dense<T>) -> Self::Output {
+        if self.n != rhs.m {
+            Err(MatrixError::Incompatibility)
+        } else {
+            let mut out: Dense<T> = Dense::with_capacity(self.n * rhs.n);
+            out.m = self.n;
+            out.n = rhs.n;
+
+            unsafe {
+                out.data.set_len(out.m * out.n);
+            }
+
+            for i in 0..out.m {
+                for j in 0..out.n {
+                    out[[i, j]] = T::ZERO;
+                    for k in 0..self.n {
+                        out[[i, j]] += self[[i, k]] * rhs[[k, j]]
+                    }
+                }
+            }
+            Ok(out)
+        }
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    mod ops{
+        use super::*;
+
+        #[test]
+        fn scalar_mul(){
+            let x = symmat![1; 3, 4];
+            assert_eq!(x * 2, mat![2, 6; 6, 8]);
+        }
+
+        #[test]
+        fn dense_symm_mul(){
+            let a = symmat![1; 2, 4; 3, 5, 6];
+            let b = mat![6; 7; 8];
+            let ab = mat![44; 80; 101];
+
+            assert_eq!((&a * &b).unwrap(), ab);
+
+            let c = mat![6, 8; 12, 3; 4, 0];
+            let ac = mat![42, 14; 80, 28; 102, 39];
+
+            assert_eq!((a * c).unwrap(), ac)
+        }
     }
 }
