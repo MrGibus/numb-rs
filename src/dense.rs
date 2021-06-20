@@ -354,8 +354,6 @@ impl<'a, T: Numeric> Iterator for DenseIntoIterator<'a, T> {
     }
 }
 
-
-
 /// multiplying a Matrix by a scalar of the same type
 impl<T: Numeric> Mul<T> for Dense<T> {
     type Output = Self;

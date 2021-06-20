@@ -18,6 +18,7 @@ pub mod numerics;
 pub mod solver;
 pub mod symmetric;
 pub mod utilities;
+mod patterns;
 
 pub use crate::core::*;
 pub use crate::dense::*;

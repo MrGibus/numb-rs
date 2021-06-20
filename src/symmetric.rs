@@ -1,5 +1,6 @@
 use crate::matrix::{Matrix, MatrixError};
 use crate::numerics::Numeric;
+use crate::patterns::TriangularNumberEnumerator;
 use std::fmt::Display;
 use std::ops::{Index, IndexMut, Mul};
 use crate::Dense;
@@ -13,6 +14,20 @@ pub struct Symmetric<T> {
     pub data: Vec<T>,
     /// the side dimensions of the matrix
     pub n: usize,
+}
+
+impl<T: Numeric> std::convert::Into<Dense<T>> for Symmetric<T> {
+    fn into(self) -> Dense<T> {
+        let mut new = Dense::with_capacity(self.n * self.n);
+        new.m = self.n;
+        new.n = self.n;
+        for i in 0..self.n{
+            for j in 0..self.n{
+                new.data.push(self[[i, j]])
+            }
+        }
+        new
+    }
 }
 
 impl<T: Numeric> Matrix for Symmetric<T> {
@@ -81,15 +96,14 @@ impl<T: Numeric> Display for Symmetric<T> {
             }
         }) + 2;
 
-        // iterate through the stored vector folding each formatted element into a final string
-        // also adding a new line when each element divides evenly into the number of rows
-        let string = strings
-            .iter()
-            .enumerate()
-            .fold("".to_string(), |mut s, (i, x)| {
-                if i % self.n == 0 && i != 0 {
+        // uses the triangle number enumerator from patterns as an iterator and zips the strings
+        let string = TriangularNumberEnumerator::new()
+            .zip(strings)
+            .fold("".to_string(), |mut s, ((i, triangle_num), x)| {
+                if i != 0 && i == triangle_num{
                     s.push('\n')
                 }
+
                 format!("{}{:>width$}", s, x, width = max)
             });
 
@@ -139,6 +153,44 @@ impl<T: Numeric> Mul<&Dense<T>> for &Symmetric<T>{
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_convert(){
+        let a = symmat![
+            0;
+            1, 2;
+            3, 4, 5;
+            6, 7, 8, 9
+        ];
+
+        let b: Dense<i32> = a.into();
+
+        assert_eq!(b.data[6], 4);
+        assert_eq!(b.data[11], 8);
+        assert_eq!(b.data[15], 9);
+    }
+
+    #[test]
+    fn test_print(){
+        let m = symmat![
+            0;
+            1, 2;
+            3, 4, 5;
+            6, 7, 8, 9
+        ];
+        let expected = "  0\n  1  2\n  3  4  5\n  6  7  8  9".to_string();
+        assert_eq!(expected, format!("{}", m));
+
+        let m = symmat![
+            0.25;
+            1., 2.;
+            3., 4.7, 5.;
+            6., 7.32, 8.1, 9.811
+        ];
+
+        let expected = "  0.25\n  1.00  2.00\n  3.00  4.70  5.00\n  6.00  7.32  8.10  9.81".to_string();
+        assert_eq!(expected, format!("{}", m));
+    }
 
     mod ops{
         use super::*;
