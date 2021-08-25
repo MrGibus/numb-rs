@@ -15,10 +15,10 @@ mod fixed;
 pub mod fraction;
 pub mod matrix;
 pub mod numerics;
+pub mod patterns;
 pub mod solver;
 pub mod symmetric;
 pub mod utilities;
-mod patterns;
 
 pub use crate::core::*;
 pub use crate::dense::*;
