@@ -31,7 +31,7 @@ pub enum MatrixError {
 }
 
 //◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼ # TRAITS ◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼◼
-pub trait Matrix: std::ops::Index<[usize; 2]> + std::ops::IndexMut<[usize; 2]> {
+pub trait Matrix {
     /// The type of matrix elements
     type Element;
 
@@ -67,4 +67,18 @@ pub trait RowOps<T: Copy + MulAssign + AddAssign + Mul<Output = T>> {
 pub trait Concatenate<M: Matrix<Element = T>, T: Numeric> {
     /// merges two matrices into a new matrix
     fn concatenate(self, other: M) -> Result<Dense<T>, MatrixError>;
+}
+
+// WIP BELOW
+
+pub trait IntoTranspose<'a>: Matrix {
+    type TransposeView;
+
+    fn t(&'a self) -> Self::TransposeView;
+}
+
+pub trait IntoTransposeMut<'a>: Matrix + IntoTranspose<'a> {
+    type TransposeViewMut;
+
+    fn t_mut(&'a mut self) -> Self::TransposeViewMut;
 }

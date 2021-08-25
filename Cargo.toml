@@ -5,10 +5,8 @@ authors = ["MrGibus <arcane2.0@gmail.com>"]
 edition = "2018"
 repository = "https://github.com/MrGibus/numb_rs"
 readme = "README.MD"
-description = "An experimental numeric package written entirely in rust"
+description = "An experimental numeric package"
 license = "MIT OR Apache-2.0"
-
-#[workspace]
 
 [dev-dependencies]
 criterion = "0.3.4"

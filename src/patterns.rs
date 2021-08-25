@@ -1,20 +1,23 @@
 /// Module for implementing numeric patterns
 
-struct TriangularNumbers{
+pub struct TriangularNumbers {
     n: usize,
     value: usize,
 }
 
-impl TriangularNumbers{
-    fn new() -> Self{
-        Self{
-            n: 0,
-            value: 0
-        }
+impl TriangularNumbers {
+    pub fn new() -> Self {
+        Self { n: 0, value: 0 }
     }
 }
 
-impl Iterator for TriangularNumbers{
+impl Default for TriangularNumbers {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Iterator for TriangularNumbers {
     type Item = usize;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -25,27 +28,33 @@ impl Iterator for TriangularNumbers{
 }
 
 /// A special enumerator which yields the count and the next triangular number
-pub struct TriangularNumberEnumerator{
+pub struct TriangularNumberEnumerator {
     i: usize,
     n: usize,
     value: usize,
 }
 
-impl TriangularNumberEnumerator{
-    pub fn new() -> Self{
-        Self{
+impl TriangularNumberEnumerator {
+    pub fn new() -> Self {
+        Self {
             i: 0,
             n: 1,
-            value: 1
+            value: 1,
         }
     }
 }
 
-impl Iterator for TriangularNumberEnumerator{
+impl Default for TriangularNumberEnumerator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Iterator for TriangularNumberEnumerator {
     type Item = (usize, usize);
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.i == self.value + 1{
+        if self.i == self.value + 1 {
             self.n += 1;
             self.value += self.n;
         }
@@ -56,13 +65,12 @@ impl Iterator for TriangularNumberEnumerator{
     }
 }
 
-
 #[cfg(test)]
-mod tests{
+mod tests {
     use super::*;
 
     #[test]
-    fn triangle_test(){
+    fn triangle_test() {
         let mut tris = TriangularNumbers::new();
         assert_eq!(tris.next(), Some(1));
         assert_eq!(tris.next(), Some(3));
@@ -72,7 +80,7 @@ mod tests{
     }
 
     #[test]
-    fn triangle_test_enumerator(){
+    fn triangle_test_enumerator() {
         let mut tris = TriangularNumberEnumerator::new();
 
         assert_eq!(tris.next(), Some((0, 1)));
