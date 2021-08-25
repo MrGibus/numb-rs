@@ -1,14 +1,8 @@
 # numb_rs
-<<<<<<< HEAD
-
 ![](https://img.shields.io/github/license/MrGibus/numb_rs) ![](https://img.shields.io/crates/v/numb_rs) ![](https://img.shields.io/github/last-commit/MrGibus/numb_rs)
 
 An experimental crate for numerical things in rust.
 
-=======
-An experimental crate for numerical things in rust.
-
->>>>>>> 95c4ec67527bf90cf29c0575c957afff7211107d
 ## Linear Algebra Example
 ```rust
     use numb_rs::{mat, solver::solve_dense, Dense, IntoCol};
