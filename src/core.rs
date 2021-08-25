@@ -620,102 +620,69 @@ mod tests {
     }
 
     // #[test]
-    // fn iterators() {
-    //     let x = mat![1, 2, 3; 4, 5, 6];
-    //     let mut x_iter = x.into_iter();
+    // fn t_view_index() {
+    //     let a = mat![11, 12, 13; 21, 22, 23];
     //
-    //     assert_eq!(x_iter.next().unwrap(), (1, [0, 0]));
-    //     assert_eq!(x_iter.next().unwrap(), (2, [0, 1]));
-    //     assert_eq!(x_iter.next().unwrap(), (3, [0, 2]));
-    //     assert_eq!(x_iter.next().unwrap(), (4, [1, 0]));
-    //     assert_eq!(x_iter.next().unwrap(), (5, [1, 1]));
-    //     assert_eq!(x_iter.next().unwrap(), (6, [1, 2]));
-    //     assert_eq!(x_iter.next(), None);
+    //     let at = a.t();
+    //     let ans = mat![11, 21; 12, 22; 13, 23];
     //
-    //     let y = symmat![
-    //     1;
-    //     2, 3;
-    //     4, 5, 6
+    //     assert_eq!(*at.m, a.n);
+    //     assert_eq!(*at.n, a.m);
+    //     assert_eq!(at[[0, 0]], ans[[0, 0]]);
+    //     assert_eq!(at[[1, 0]], ans[[1, 0]]);
+    //     assert_eq!(at[[2, 0]], ans[[2, 0]]);
+    //     assert_eq!(at[[0, 1]], ans[[0, 1]]);
+    //     assert_eq!(at[[1, 1]], ans[[1, 1]]);
+    //     assert_eq!(at[[2, 1]], ans[[2, 1]]);
+    // }
+    //
+    // #[test]
+    // fn t_view() {
+    //     let a = mat![
+    //         11, 12, 13, 14, 15;
+    //         21, 22, 23, 24, 25;
+    //         31, 32, 33, 34, 35
     //     ];
     //
-    //     let mut y_iter = y.into_iter();
+    //     let at = a.t();
     //
-    //     assert_eq!(y_iter.next().unwrap(), (1, [0, 0]));
-    //     assert_eq!(y_iter.next().unwrap(), (2, [0, 1]));
-    //     assert_eq!(y_iter.next().unwrap(), (4, [0, 2]));
-    //     assert_eq!(y_iter.next().unwrap(), (2, [1, 0]));
-    //     assert_eq!(y_iter.next().unwrap(), (3, [1, 1]));
-    //     assert_eq!(y_iter.next().unwrap(), (5, [1, 2]));
-    //     assert_eq!(y_iter.next().unwrap(), (4, [2, 0]));
-    //     assert_eq!(y_iter.next().unwrap(), (5, [2, 1]));
-    //     assert_eq!(y_iter.next().unwrap(), (6, [2, 2]));
-    //     assert_eq!(y_iter.next(), None);
+    //     let ans = mat![
+    //         11, 21, 31;
+    //         12, 22, 32;
+    //         13, 23, 33;
+    //         14, 24, 34;
+    //         15, 25, 35
+    //     ];
+    //
+    //     assert_eq!(at, ans);
+    //     assert_eq!(ans, at);
     // }
-
-    #[test]
-    fn t_view_index() {
-        let a = mat![11, 12, 13; 21, 22, 23];
-
-        let at = a.t();
-        let ans = mat![11, 21; 12, 22; 13, 23];
-
-        assert_eq!(*at.m, a.n);
-        assert_eq!(*at.n, a.m);
-        assert_eq!(at[[0, 0]], ans[[0, 0]]);
-        assert_eq!(at[[1, 0]], ans[[1, 0]]);
-        assert_eq!(at[[2, 0]], ans[[2, 0]]);
-        assert_eq!(at[[0, 1]], ans[[0, 1]]);
-        assert_eq!(at[[1, 1]], ans[[1, 1]]);
-        assert_eq!(at[[2, 1]], ans[[2, 1]]);
-    }
-
-    #[test]
-    fn t_view() {
-        let a = mat![
-            11, 12, 13, 14, 15;
-            21, 22, 23, 24, 25;
-            31, 32, 33, 34, 35
-        ];
-
-        let at: MatrixT<u32> = a.t();
-
-        let ans = mat![
-            11, 21, 31;
-            12, 22, 32;
-            13, 23, 33;
-            14, 24, 34;
-            15, 25, 35
-        ];
-
-        assert_eq!(at, ans);
-        assert_eq!(ans, at);
-    }
 
     /// operatives testing
     mod ops {
         use super::*;
 
-        #[test]
-        fn matrix_mul_transpose() {
-            let a = mat![21, 57, 32; 48, 31, 17];
-            let b = mat![45, 12; 18, 52];
-
-            let ans = mat![1809, 2748; 3123, 2296; 1746, 1268];
-            let result = a.t() * b;
-
-            assert!(result.is_ok());
-            assert_eq!(result.unwrap(), ans);
-
-            let c = mat![5, 7; 3, 6];
-            let d = mat![8, 2; 7, 9; 0, 6];
-
-            let ans = mat![54, 98, 42; 36, 75, 36];
-
-            let result = c * d.t();
-
-            assert!(result.is_ok());
-            assert_eq!(result.unwrap(), ans);
-        }
+        // #[test]
+        // fn matrix_mul_transpose() {
+        //     let a = mat![21, 57, 32; 48, 31, 17];
+        //     let b = mat![45, 12; 18, 52];
+        //
+        //     let ans = mat![1809, 2748; 3123, 2296; 1746, 1268];
+        //     let result = a.t() * b;
+        //
+        //     assert!(result.is_ok());
+        //     assert_eq!(result.unwrap(), ans);
+        //
+        //     let c = mat![5, 7; 3, 6];
+        //     let d = mat![8, 2; 7, 9; 0, 6];
+        //
+        //     let ans = mat![54, 98, 42; 36, 75, 36];
+        //
+        //     let result = c * d.t();
+        //
+        //     assert!(result.is_ok());
+        //     assert_eq!(result.unwrap(), ans);
+        // }
 
         #[test]
         fn matrix_mul_symmetry() {

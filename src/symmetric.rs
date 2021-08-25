@@ -1,9 +1,9 @@
 use crate::matrix::{Matrix, MatrixError};
 use crate::numerics::Numeric;
 use crate::patterns::TriangularNumberEnumerator;
+use crate::Dense;
 use std::fmt::Display;
 use std::ops::{Index, IndexMut, Mul};
-use crate::Dense;
 
 /// A struct to represent a symmetrical matrix of nxn
 /// The struct does not have an 'm' value
@@ -16,14 +16,14 @@ pub struct Symmetric<T> {
     pub n: usize,
 }
 
-impl<T: Numeric> std::convert::Into<Dense<T>> for Symmetric<T> {
-    fn into(self) -> Dense<T> {
-        let mut new = Dense::with_capacity(self.n * self.n);
-        new.m = self.n;
-        new.n = self.n;
-        for i in 0..self.n{
-            for j in 0..self.n{
-                new.data.push(self[[i, j]])
+impl<T: Numeric> std::convert::From<Symmetric<T>> for Dense<T> {
+    fn from(mat: Symmetric<T>) -> Dense<T> {
+        let mut new = Dense::with_capacity(mat.n * mat.n);
+        new.m = mat.n;
+        new.n = mat.n;
+        for i in 0..mat.n {
+            for j in 0..mat.n {
+                new.data.push(mat[[i, j]])
             }
         }
         new
@@ -97,31 +97,32 @@ impl<T: Numeric> Display for Symmetric<T> {
         }) + 2;
 
         // uses the triangle number enumerator from patterns as an iterator and zips the strings
-        let string = TriangularNumberEnumerator::new()
-            .zip(strings)
-            .fold("".to_string(), |mut s, ((i, triangle_num), x)| {
-                if i != 0 && i == triangle_num{
+        let string = TriangularNumberEnumerator::new().zip(strings).fold(
+            "".to_string(),
+            |mut s, ((i, triangle_num), x)| {
+                if i != 0 && i == triangle_num {
                     s.push('\n')
                 }
 
                 format!("{}{:>width$}", s, x, width = max)
-            });
+            },
+        );
 
         write!(f, "{}", string)
     }
 }
 
-impl<T: Numeric> Mul<T> for Symmetric<T>{
+impl<T: Numeric> Mul<T> for Symmetric<T> {
     type Output = Self;
 
     fn mul(self, scalar: T) -> Self {
-        let v: Vec<T> = self.data.into_iter().map(|x| x* scalar).collect();
+        let v: Vec<T> = self.data.into_iter().map(|x| x * scalar).collect();
 
-        Symmetric { data: v, ..self}
+        Symmetric { data: v, ..self }
     }
 }
 
-impl<T: Numeric> Mul<&Dense<T>> for &Symmetric<T>{
+impl<T: Numeric> Mul<&Dense<T>> for &Symmetric<T> {
     type Output = Result<Dense<T>, MatrixError>;
 
     fn mul(self, rhs: &Dense<T>) -> Self::Output {
@@ -149,13 +150,12 @@ impl<T: Numeric> Mul<&Dense<T>> for &Symmetric<T>{
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_convert(){
+    fn test_convert() {
         let a = symmat![
             0;
             1, 2;
@@ -171,7 +171,7 @@ mod tests {
     }
 
     #[test]
-    fn test_print(){
+    fn test_print() {
         let m = symmat![
             0;
             1, 2;
@@ -188,21 +188,22 @@ mod tests {
             6., 7.32, 8.1, 9.811
         ];
 
-        let expected = "  0.25\n  1.00  2.00\n  3.00  4.70  5.00\n  6.00  7.32  8.10  9.81".to_string();
+        let expected =
+            "  0.25\n  1.00  2.00\n  3.00  4.70  5.00\n  6.00  7.32  8.10  9.81".to_string();
         assert_eq!(expected, format!("{}", m));
     }
 
-    mod ops{
+    mod ops {
         use super::*;
 
         #[test]
-        fn scalar_mul(){
+        fn scalar_mul() {
             let x = symmat![1; 3, 4];
             assert_eq!(x * 2, mat![2, 6; 6, 8]);
         }
 
         #[test]
-        fn dense_symm_mul(){
+        fn dense_symm_mul() {
             let a = symmat![1; 2, 4; 3, 5, 6];
             let b = mat![6; 7; 8];
             let ab = mat![44; 80; 101];

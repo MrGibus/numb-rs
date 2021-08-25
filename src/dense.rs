@@ -1,6 +1,6 @@
 //! module for the dense matrix type
 
-use crate::matrix::{Concatenate, Matrix, MatrixError, RowOps};
+use crate::matrix::{Concatenate, IntoTranspose, IntoTransposeMut, Matrix, MatrixError, RowOps};
 use crate::numerics::Numeric;
 use crate::utilities::ApproxEq;
 use crate::MatrixT;
@@ -220,7 +220,8 @@ impl<T: Numeric> Dense<T> {
 
     /// this method returns self wrapped in a MatrixT struct to indicate that methods should index
     /// the transpose of the struct it does not perform any matrix
-    pub fn t(&self) -> MatrixT<T> {
+    #[deprecated]
+    pub fn t_old(&self) -> MatrixT<T> {
         MatrixT {
             /// a reference to the vector of the Matrix below
             data: &self.data,
@@ -402,13 +403,14 @@ impl<T: Numeric> Mul<Dense<T>> for Dense<T> {
     }
 }
 
+/// TODO: Create a Macro for this
 /// There has to be an elegent way to do this, asking on SO will certainly flag duplicate questions
 /// so why even bother.
 /// - Macros don't really help (about same amount of code)
 /// - Can't use Borrow trait as it's a standard op and it always takes by value
 /// - Cow runs into a lot of errors
 /// 'type parameter `M` must be covered by another type when it appears before the first local type (`Dense<f64>`)'
-/// A DOT trait would be sensible
+/// A DOT trait would be sensible?
 impl<T: Numeric> Mul<&Dense<T>> for Dense<T> {
     type Output = Result<Self, MatrixError>;
 
@@ -464,7 +466,6 @@ impl<T: Numeric> Mul<Dense<T>> for &Dense<T> {
         }
     }
 }
-
 
 impl<T: Numeric> Mul<&Dense<T>> for &Dense<T> {
     type Output = Result<Dense<T>, MatrixError>;
@@ -556,9 +557,114 @@ impl ApproxEq<Dense<f64>> for Dense<f64> {
     }
 }
 
+#[derive(Debug)]
+pub struct DenseTranspose<'a, T: Numeric + 'a> {
+    inner: &'a Dense<T>,
+    m: usize,
+    n: usize,
+}
+
+#[derive(Debug)]
+pub struct DenseTransposeMut<'a, T: Numeric + 'a> {
+    inner: &'a mut Dense<T>,
+    m: usize,
+    n: usize,
+}
+
+impl<'a, T: Numeric + 'a> IntoTranspose<'a> for Dense<T> {
+    type TransposeView = DenseTranspose<'a, T>;
+
+    fn t(&'a self) -> Self::TransposeView {
+        DenseTranspose {
+            inner: self,
+            m: self.n,
+            n: self.m,
+        }
+    }
+}
+
+impl<'a, T: Numeric + 'a> IntoTransposeMut<'a> for Dense<T> {
+    type TransposeViewMut = DenseTransposeMut<'a, T>;
+
+    fn t_mut(&'a mut self) -> Self::TransposeViewMut {
+        let n = self.n;
+        let m = self.m;
+
+        DenseTransposeMut { inner: self, m, n }
+    }
+}
+
+impl<T: Numeric> Index<[usize; 2]> for DenseTranspose<'_, T> {
+    type Output = T;
+
+    fn index(&self, index: [usize; 2]) -> &Self::Output {
+        &self.inner[[index[1], index[0]]]
+    }
+}
+
+impl<T: Numeric> Index<[usize; 2]> for DenseTransposeMut<'_, T> {
+    type Output = T;
+
+    fn index(&self, index: [usize; 2]) -> &Self::Output {
+        &self.inner[[index[1], index[0]]]
+    }
+}
+
+impl<T: Numeric> IndexMut<[usize; 2]> for DenseTransposeMut<'_, T> {
+    fn index_mut(&mut self, index: [usize; 2]) -> &mut Self::Output {
+        &mut self.inner[[index[1], index[0]]]
+    }
+}
+
+impl<'a, T: Numeric + 'a> Matrix for DenseTranspose<'a, T> {
+    type Element = T;
+
+    fn len(&self) -> usize {
+        self.inner.len()
+    }
+
+    fn size(&self) -> [usize; 2] {
+        self.inner.size()
+    }
+
+    fn into_vec(self) -> Vec<Self::Element> {
+        // TODO
+        unimplemented!()
+    }
+}
+
+impl<'a, T: Numeric + 'a> Matrix for DenseTransposeMut<'a, T> {
+    type Element = T;
+
+    fn len(&self) -> usize {
+        self.inner.len()
+    }
+
+    fn size(&self) -> [usize; 2] {
+        self.inner.size()
+    }
+
+    fn into_vec(self) -> Vec<Self::Element> {
+        //TODO
+        unimplemented!()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_transpose() {
+        let mut a = mat![1, 2, 3; 4, 5, 6];
+        assert_eq!(a[[0, 1]], 2);
+
+        let b = a.t();
+        assert_eq!(b[[0, 1]], 4);
+
+        a.t_mut()[[2, 0]] = 7;
+        assert_eq!(a[[0, 2]], 7);
+    }
 
     #[test]
     fn test_raw_matrix() {
@@ -841,7 +947,7 @@ mod tests {
 
         a.into_iter().enumerate().for_each(|(i, row)| {
             row.into_iter().enumerate().for_each(|(j, x)| {
-                println!("[{},{}] = {}",i, j, x);
+                println!("[{},{}] = {}", i, j, x);
             })
         });
     }
