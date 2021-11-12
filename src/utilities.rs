@@ -97,7 +97,7 @@ mod tests {
         let a: f32 = 0.0001;
         let b: f32 = 0.00011;
 
-        &a.assert_approx_eq(&b, 0.00005);
+        a.assert_approx_eq(&b, 0.00005);
         assert_eq!(a.approx_eq(&b, 0.000009), false);
     }
 
@@ -106,7 +106,7 @@ mod tests {
         let a = vec![1.0001, 1.0003, 1.00006];
         let b = vec![1.0001, 1.0003, 1.0001];
 
-        &a.assert_approx_eq(&b, 0.00005);
+        a.assert_approx_eq(&b, 0.00005);
         assert_eq!(a.approx_eq(&b, 0.0001), false);
     }
 
