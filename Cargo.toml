@@ -2,7 +2,7 @@
 name = "numb_rs"
 version = "0.0.4"
 authors = ["MrGibus <arcane2.0@gmail.com>"]
-edition = "2018"
+edition = "2021"
 repository = "https://github.com/MrGibus/numb_rs"
 readme = "README.MD"
 description = "An experimental numeric package"
