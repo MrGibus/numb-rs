@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-#[macro_use]
+use numb_rs::matrix::RowOps;
 use numb_rs::*;
 
 // https://godbolt.org is a useful tool for viewing assembly
