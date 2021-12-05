@@ -2,6 +2,7 @@
 ![](https://img.shields.io/github/license/MrGibus/numb_rs) ![](https://img.shields.io/crates/v/numb_rs) ![](https://img.shields.io/github/last-commit/MrGibus/numb_rs)
 
 An experimental crate for numerical things in rust.
+This is my maths crate. There are many like it, but this one is mine.
 
 ## Linear Algebra Example
 ```rust
