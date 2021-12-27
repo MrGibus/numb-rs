@@ -127,7 +127,7 @@ impl<T: Numeric> Display for Dense<T> {
         // first run through to find the max length of each formatted element
         // elements are stored in a vec as we go
         let mut strings: Vec<String> = vec![];
-        let max = self.data.iter().fold(0, |max: usize, x: &T| {
+        let max: usize = self.data.iter().fold(0, |max: usize, x: &T| {
             let s = format(x);
             let disp_len = s.len();
             strings.push(s);
@@ -260,6 +260,13 @@ impl<T: Numeric> std::convert::From<Vec<T>> for Dense<T> {
     }
 }
 
+impl<T: Numeric> std::convert::From<&[T]> for Dense<T> {
+    fn from(slice: &[T]) -> Self {
+        let n = slice.len();
+        Dense {data: slice.to_vec(), m: 1, n }
+    }
+}
+
 pub trait IntoCol<T: Numeric> {
     fn into_col(self) -> Dense<T>;
 }
@@ -267,6 +274,12 @@ pub trait IntoCol<T: Numeric> {
 impl<T: Numeric> IntoCol<T> for Vec<T> {
     fn into_col(self) -> Dense<T> {
         Dense::col_from_vec(self)
+    }
+}
+
+impl<T: Numeric> IntoCol<T> for &[T] {
+    fn into_col(self) -> Dense<T> {
+        Dense::col_from_vec(self.to_vec())
     }
 }
 
