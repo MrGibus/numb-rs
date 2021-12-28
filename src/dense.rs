@@ -263,7 +263,11 @@ impl<T: Numeric> std::convert::From<Vec<T>> for Dense<T> {
 impl<T: Numeric> std::convert::From<&[T]> for Dense<T> {
     fn from(slice: &[T]) -> Self {
         let n = slice.len();
-        Dense {data: slice.to_vec(), m: 1, n }
+        Dense {
+            data: slice.to_vec(),
+            m: 1,
+            n,
+        }
     }
 }
 
