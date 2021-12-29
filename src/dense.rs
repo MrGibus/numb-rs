@@ -3,7 +3,6 @@
 use crate::matrix::{Concatenate, IntoTranspose, IntoTransposeMut, Matrix, MatrixError, RowOps};
 use crate::numerics::Numeric;
 use crate::utilities::ApproxEq;
-use crate::MatrixT;
 use std::ops::{Index, IndexMut, Mul, MulAssign};
 
 use std::borrow::Cow;
@@ -218,20 +217,6 @@ impl<T: Numeric> Dense<T> {
         }
     }
 
-    /// this method returns self wrapped in a MatrixT struct to indicate that methods should index
-    /// the transpose of the struct it does not perform any matrix
-    #[deprecated]
-    pub fn t_old(&self) -> MatrixT<T> {
-        MatrixT {
-            /// a reference to the vector of the Matrix below
-            data: &self.data,
-            /// m is a reference to the 'n' column of the Matrix
-            m: &self.n,
-            /// n is a reference to the 'm' column of the Matrix
-            n: &self.m,
-        }
-    }
-
     pub fn concatenate_vec(self, other: &[T]) -> Result<Dense<T>, MatrixError> {
         match self.m == other.len() {
             true => {
@@ -388,121 +373,6 @@ impl<T: Numeric> MulAssign<T> for Dense<T> {
     }
 }
 
-/// Matrix multiplication returns the dot product
-/// The matrices must have dimensions such that mn * nk = mk
-/// This is a naive solution, there are more efficient computational methods tbd later
-impl<T: Numeric> Mul<Dense<T>> for Dense<T> {
-    type Output = Result<Self, MatrixError>;
-
-    fn mul(self, other: Self) -> Self::Output {
-        if self.n != other.m {
-            Err(MatrixError::Incompatibility)
-        } else {
-            let mut out: Dense<T> = Dense::with_capacity(self.m * other.n);
-            out.m = self.m;
-            out.n = other.n;
-
-            unsafe {
-                out.data.set_len(out.m * out.n);
-            }
-
-            for i in 0..out.m {
-                for j in 0..out.n {
-                    out[[i, j]] = T::ZERO;
-                    for k in 0..self.n {
-                        out[[i, j]] += self[[i, k]] * other[[k, j]]
-                    }
-                }
-            }
-            Ok(out)
-        }
-    }
-}
-
-impl<T: Numeric> Mul<&Dense<T>> for Dense<T> {
-    type Output = Result<Self, MatrixError>;
-
-    fn mul(self, other: &Self) -> Self::Output {
-        if self.n != other.m {
-            Err(MatrixError::Incompatibility)
-        } else {
-            let mut out: Dense<T> = Dense::with_capacity(self.m * other.n);
-            out.m = self.m;
-            out.n = other.n;
-
-            unsafe {
-                out.data.set_len(out.m * out.n);
-            }
-
-            for i in 0..out.m {
-                for j in 0..out.n {
-                    out[[i, j]] = T::ZERO;
-                    for k in 0..self.n {
-                        out[[i, j]] += self[[i, k]] * other[[k, j]]
-                    }
-                }
-            }
-            Ok(out)
-        }
-    }
-}
-
-impl<T: Numeric> Mul<Dense<T>> for &Dense<T> {
-    type Output = Result<Dense<T>, MatrixError>;
-
-    fn mul(self, other: Dense<T>) -> Self::Output {
-        if self.n != other.m {
-            Err(MatrixError::Incompatibility)
-        } else {
-            let mut out: Dense<T> = Dense::with_capacity(self.m * other.n);
-            out.m = self.m;
-            out.n = other.n;
-
-            unsafe {
-                out.data.set_len(out.m * out.n);
-            }
-
-            for i in 0..out.m {
-                for j in 0..out.n {
-                    out[[i, j]] = T::ZERO;
-                    for k in 0..self.n {
-                        out[[i, j]] += self[[i, k]] * other[[k, j]]
-                    }
-                }
-            }
-            Ok(out)
-        }
-    }
-}
-
-impl<T: Numeric> Mul<&Dense<T>> for &Dense<T> {
-    type Output = Result<Dense<T>, MatrixError>;
-
-    fn mul(self, other: &Dense<T>) -> Self::Output {
-        if self.n != other.m {
-            Err(MatrixError::Incompatibility)
-        } else {
-            let mut out: Dense<T> = Dense::with_capacity(self.m * other.n);
-            out.m = self.m;
-            out.n = other.n;
-
-            unsafe {
-                out.data.set_len(out.m * out.n);
-            }
-
-            for i in 0..out.m {
-                for j in 0..out.n {
-                    out[[i, j]] = T::ZERO;
-                    for k in 0..self.n {
-                        out[[i, j]] += self[[i, k]] * other[[k, j]]
-                    }
-                }
-            }
-            Ok(out)
-        }
-    }
-}
-
 impl<'a, T: Numeric> From<Dense<T>> for Cow<'a, Dense<T>> {
     fn from(m: Dense<T>) -> Self {
         Cow::Owned(m)
@@ -567,16 +437,16 @@ impl ApproxEq<Dense<f64>> for Dense<f64> {
 
 #[derive(Debug)]
 pub struct DenseTranspose<'a, T: Numeric + 'a> {
-    inner: &'a Dense<T>,
-    m: usize,
-    n: usize,
+    pub inner: &'a Dense<T>,
+    pub m: usize,
+    pub n: usize,
 }
 
 #[derive(Debug)]
 pub struct DenseTransposeMut<'a, T: Numeric + 'a> {
-    inner: &'a mut Dense<T>,
-    m: usize,
-    n: usize,
+    pub inner: &'a mut Dense<T>,
+    pub m: usize,
+    pub n: usize,
 }
 
 impl<'a, T: Numeric + 'a> Display for DenseTranspose<'a, T> {
@@ -1013,6 +883,26 @@ mod tests {
             assert!(c.is_err());
             assert_eq!(c.unwrap_err(), MatrixError::Incompatibility)
         }
+
+        #[test]
+        fn matrix_mul_t_m() {
+            let a = mat![1, 2, 3, 4; 5, 6, 7, 8];
+            let b = mat![7; 3];
+
+            let expected = mat![22; 32; 42; 52];
+            assert_eq!(expected, (&a.t() * &b).unwrap());
+            assert_eq!(expected, (a.t() * b).unwrap());
+        }
+
+        #[test]
+        fn matrix_mul_m_tmut() {
+            let a = mat![1, 2, 3, 4; 5, 6, 7, 8];
+            let mut b = mat![10, 9, 8, 7; 6, 5, 4, 3];
+
+            let expected = mat![80, 40; 216, 112];
+            assert_eq!(expected, (&a * &b.t()).unwrap());
+            assert_eq!(expected, (a * b.t_mut()).unwrap());
+        }
     }
 
     #[test]
@@ -1104,7 +994,7 @@ mod tests {
     #[test]
     fn transposemut_into_vec() {
         let mut a = mat![0, 1, 2; 3, 4, 5];
-        let mut v = a.t_mut().into_vec();
+        let v = a.t_mut().into_vec();
 
         assert_eq!(v, vec![0, 3, 1, 4, 2, 5])
     }
