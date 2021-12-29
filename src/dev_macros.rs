@@ -69,3 +69,64 @@ macro_rules! impl_mul_matrix_single {
         }
     };
 }
+
+/// Matrix equality implementation macro for integers
+macro_rules! impl_eq_int {
+    ($int:ty) => {
+        impl std::cmp::PartialEq<Dense<$int>> for Dense<$int> {
+            fn eq(&self, other: &Self) -> bool {
+                if self.m != other.m || self.n != other.n {
+                    return false;
+                } else {
+                    self.data == other.data
+                }
+            }
+        }
+
+        impl std::cmp::PartialEq<Symmetric<$int>> for Symmetric<$int> {
+            fn eq(&self, other: &Self) -> bool {
+                if self.n != other.n {
+                    return false;
+                } else {
+                    self.data == other.data
+                }
+            }
+        }
+
+        impl std::cmp::PartialEq<Dense<$int>> for Symmetric<$int> {
+            fn eq(&self, other: &Dense<$int>) -> bool {
+                if self.n != other.m || self.n != other.n {
+                    return false;
+                } else {
+                    for i in 0..self.n {
+                        for j in 0..self.n {
+                            if self[[i, j]] != other[[i, j]] {
+                                return false;
+                            }
+                        }
+                    }
+                }
+                true
+            }
+        }
+
+        impl std::cmp::PartialEq<Symmetric<$int>> for Dense<$int> {
+            fn eq(&self, other: &Symmetric<$int>) -> bool {
+                if self.m != other.n || self.n != other.n {
+                    return false;
+                } else {
+                    for i in 0..self.n {
+                        for j in 0..self.n {
+                            if self[[i, j]] != other[[i, j]] {
+                                return false;
+                            }
+                        }
+                    }
+                }
+                true
+            }
+        }
+        impl std::cmp::Eq for Dense<$int> {}
+        impl std::cmp::Eq for Symmetric<$int> {}
+    };
+}

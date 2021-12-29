@@ -3,7 +3,6 @@
 use crate::matrix::{Concatenate, IntoTranspose, IntoTransposeMut, Matrix, MatrixError, RowOps};
 use crate::numerics::Numeric;
 use crate::utilities::ApproxEq;
-use crate::MatrixT;
 use std::ops::{Index, IndexMut, Mul, MulAssign};
 
 use std::borrow::Cow;
@@ -218,20 +217,6 @@ impl<T: Numeric> Dense<T> {
         }
     }
 
-    /// this method returns self wrapped in a MatrixT struct to indicate that methods should index
-    /// the transpose of the struct it does not perform any matrix
-    #[deprecated]
-    pub fn t_old(&self) -> MatrixT<T> {
-        MatrixT {
-            /// a reference to the vector of the Matrix below
-            data: &self.data,
-            /// m is a reference to the 'n' column of the Matrix
-            m: &self.n,
-            /// n is a reference to the 'm' column of the Matrix
-            n: &self.m,
-        }
-    }
-
     pub fn concatenate_vec(self, other: &[T]) -> Result<Dense<T>, MatrixError> {
         match self.m == other.len() {
             true => {
@@ -388,8 +373,6 @@ impl<T: Numeric> MulAssign<T> for Dense<T> {
     }
 }
 
-impl_mul_matrix!(Dense<T>, Dense<T>);
-
 impl<'a, T: Numeric> From<Dense<T>> for Cow<'a, Dense<T>> {
     fn from(m: Dense<T>) -> Self {
         Cow::Owned(m)
@@ -454,16 +437,16 @@ impl ApproxEq<Dense<f64>> for Dense<f64> {
 
 #[derive(Debug)]
 pub struct DenseTranspose<'a, T: Numeric + 'a> {
-    inner: &'a Dense<T>,
-    m: usize,
-    n: usize,
+    pub inner: &'a Dense<T>,
+    pub m: usize,
+    pub n: usize,
 }
 
 #[derive(Debug)]
 pub struct DenseTransposeMut<'a, T: Numeric + 'a> {
-    inner: &'a mut Dense<T>,
-    m: usize,
-    n: usize,
+    pub inner: &'a mut Dense<T>,
+    pub m: usize,
+    pub n: usize,
 }
 
 impl<'a, T: Numeric + 'a> Display for DenseTranspose<'a, T> {
@@ -650,10 +633,6 @@ impl<'a, T: Numeric + 'a> Matrix for DenseTransposeMut<'a, T> {
             .collect()
     }
 }
-
-impl_mul_matrix_ew!(Dense<T>, DenseTranspose<'_, T>);
-impl_mul_matrix_ew!(DenseTransposeMut<'_, T>, DenseTranspose<'_, T>);
-impl_mul_matrix_ew!(Dense<T>, DenseTransposeMut<'_, T>);
 
 #[cfg(test)]
 mod tests {
