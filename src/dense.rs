@@ -7,7 +7,7 @@ use crate::MatrixT;
 use std::ops::{Index, IndexMut, Mul, MulAssign};
 
 use std::borrow::Cow;
-use std::fmt::{Debug, Display};
+use std::fmt::{Debug, Display, Formatter};
 
 /// a dense matrix stores all the values of the matrix
 /// a matrix is a vec with dimensional properties (m x n)
@@ -322,7 +322,6 @@ impl<T: Numeric> Concatenate<Dense<T>, T> for Dense<T> {
                     Dense::with_capacity(self.data.capacity() + other.data.capacity());
                 new.n = self.n + other.n;
                 new.m = self.m;
-                // TODO: Vectorise this loop
 
                 // if we think of appending to a vector instead of a 2d array we might consider
                 // that we wish to add a row starting at 'i' in the vector and push values
@@ -420,14 +419,6 @@ impl<T: Numeric> Mul<Dense<T>> for Dense<T> {
     }
 }
 
-/// TODO: Create a Macro for this
-/// There has to be an elegent way to do this, asking on SO will certainly flag duplicate questions
-/// so why even bother.
-/// - Macros don't really help (about same amount of code)
-/// - Can't use Borrow trait as it's a standard op and it always takes by value
-/// - Cow runs into a lot of errors
-/// 'type parameter `M` must be covered by another type when it appears before the first local type (`Dense<f64>`)'
-/// A DOT trait would be sensible?
 impl<T: Numeric> Mul<&Dense<T>> for Dense<T> {
     type Output = Result<Self, MatrixError>;
 
@@ -588,6 +579,90 @@ pub struct DenseTransposeMut<'a, T: Numeric + 'a> {
     n: usize,
 }
 
+impl<'a, T: Numeric + 'a> Display for DenseTranspose<'a, T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let precision = f.precision().unwrap_or(2);
+        let format = |x: &T| format!("{:.*}", precision, x);
+
+        // Similar to Dense however we'll iterate over the starting items (0..self.m) and
+        // skip the previous starting values followed by a step by iterator to achieve the
+        // correct order
+        let mut strings: Vec<String> = vec![];
+        let max: usize = (0..self.m).into_iter().fold(0, |max, i| {
+            self.inner
+                .data
+                .iter()
+                .skip(i)
+                .step_by(self.m)
+                .fold(max, |submax, x| {
+                    let s = format(x);
+                    let disp_len = s.len();
+                    strings.push(s);
+                    if submax > disp_len {
+                        submax
+                    } else {
+                        disp_len
+                    }
+                })
+        }) + 2;
+
+        // exactly the same folding operation as the dense Display implementation
+        let string = strings
+            .iter()
+            .enumerate()
+            .fold("".to_string(), |mut s, (i, x)| {
+                if i % self.n == 0 && i != 0 {
+                    s.push('\n')
+                }
+                format!("{}{:>width$}", s, x, width = max)
+            });
+
+        write!(f, "{}", string)
+    }
+}
+
+impl<'a, T: Numeric + 'a> Display for DenseTransposeMut<'a, T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let precision = f.precision().unwrap_or(2);
+        let format = |x: &T| format!("{:.*}", precision, x);
+
+        // Similar to Dense however we'll iterate over the starting items (0..self.m) and
+        // skip the previous starting values followed by a step by iterator to achieve the
+        // correct order
+        let mut strings: Vec<String> = vec![];
+        let max: usize = (0..self.m).into_iter().fold(0, |max, i| {
+            self.inner
+                .data
+                .iter()
+                .skip(i)
+                .step_by(self.m)
+                .fold(max, |submax, x| {
+                    let s = format(x);
+                    let disp_len = s.len();
+                    strings.push(s);
+                    if submax > disp_len {
+                        submax
+                    } else {
+                        disp_len
+                    }
+                })
+        }) + 2;
+
+        // exactly the same folding operation as the dense Display implementation
+        let string = strings
+            .iter()
+            .enumerate()
+            .fold("".to_string(), |mut s, (i, x)| {
+                if i % self.n == 0 && i != 0 {
+                    s.push('\n')
+                }
+                format!("{}{:>width$}", s, x, width = max)
+            });
+
+        write!(f, "{}", string)
+    }
+}
+
 impl<'a, T: Numeric + 'a> IntoTranspose<'a> for Dense<T> {
     type TransposeView = DenseTranspose<'a, T>;
 
@@ -604,8 +679,8 @@ impl<'a, T: Numeric + 'a> IntoTransposeMut<'a> for Dense<T> {
     type TransposeViewMut = DenseTransposeMut<'a, T>;
 
     fn t_mut(&'a mut self) -> Self::TransposeViewMut {
-        let n = self.n;
-        let m = self.m;
+        let m = self.n;
+        let n = self.m;
 
         DenseTransposeMut { inner: self, m, n }
     }
@@ -645,8 +720,19 @@ impl<'a, T: Numeric + 'a> Matrix for DenseTranspose<'a, T> {
     }
 
     fn into_vec(self) -> Vec<Self::Element> {
-        // TODO
-        unimplemented!()
+        (0..self.m)
+            .into_iter()
+            .map(|i| {
+                self.inner
+                    .data
+                    .iter()
+                    .skip(i)
+                    .step_by(self.m)
+                    .copied()
+                    .collect::<Vec<Self::Element>>()
+            })
+            .flatten()
+            .collect()
     }
 }
 
@@ -662,8 +748,19 @@ impl<'a, T: Numeric + 'a> Matrix for DenseTransposeMut<'a, T> {
     }
 
     fn into_vec(self) -> Vec<Self::Element> {
-        //TODO
-        unimplemented!()
+        (0..self.m)
+            .into_iter()
+            .map(|i| {
+                self.inner
+                    .data
+                    .iter()
+                    .skip(i)
+                    .step_by(self.m)
+                    .copied()
+                    .collect::<Vec<Self::Element>>()
+            })
+            .flatten()
+            .collect()
     }
 }
 
@@ -947,6 +1044,69 @@ mod tests {
             format!("{}", f),
             "   0.10   2.34   3.14\n   4.05  -5.20  -6.84\n   8.00   8.00   9.99".to_string()
         );
+    }
+
+    #[test]
+    fn transpose_print() {
+        let a = mat![0, 1, 2; 3, 4, 5; 6, 7, 8; 9, 10, 11];
+
+        assert_eq!(
+            format!("{}", a.t()),
+            "   0   3   6   9\n   1   4   7  10\n   2   5   8  11".to_string()
+        );
+
+        let f = mat![
+            0.1, 2.34, 3.14;
+            4.05, -5.2, -6.84;
+            7.999, 8.0023, 9.99
+        ];
+
+        assert_eq!(
+            format!("{:.3}", f.t()),
+            "   0.100   4.050   7.999\n   2.340  -5.200   8.002\n   3.140  -6.840   9.990"
+                .to_string()
+        );
+    }
+
+    #[test]
+    fn mut_trans_print() {
+        let mut a = mat![0, 1, 2; 3, 4, 5; 6, 7, 8; 9, 10, 11];
+
+        assert_eq!(
+            format!("{}", a.t_mut()),
+            "   0   3   6   9\n   1   4   7  10\n   2   5   8  11".to_string()
+        );
+
+        let mut f = mat![
+            0.1, 2.34, 3.14;
+            4.05, -5.2, -6.84;
+            7.999, 8.0023, 9.99
+        ];
+
+        let mut ft = f.t_mut();
+        ft[[0, 1]] = 7.083;
+
+        assert_eq!(
+            format!("{:.3}", ft),
+            "   0.100   7.083   7.999\n   2.340  -5.200   8.002\n   3.140  -6.840   9.990"
+                .to_string()
+        );
+    }
+
+    #[test]
+    fn transpose_into_vec() {
+        let a = mat![0, 1, 2; 3, 4, 5];
+        let v = a.t().into_vec();
+
+        assert_eq!(v, vec![0, 3, 1, 4, 2, 5])
+    }
+
+    #[test]
+    fn transposemut_into_vec() {
+        let mut a = mat![0, 1, 2; 3, 4, 5];
+        let mut v = a.t_mut().into_vec();
+
+        assert_eq!(v, vec![0, 3, 1, 4, 2, 5])
     }
 
     #[test]
