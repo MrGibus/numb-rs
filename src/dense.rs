@@ -591,18 +591,9 @@ impl<'a, T: Numeric + 'a> Matrix for DenseTranspose<'a, T> {
 
     fn into_vec(self) -> Vec<Self::Element> {
         (0..self.m)
-            .into_iter()
-            .map(|i| {
-                self.inner
-                    .data
-                    .iter()
-                    .skip(i)
-                    .step_by(self.m)
-                    .copied()
-                    .collect::<Vec<Self::Element>>()
-            })
-            .flatten()
-            .collect()
+            .into_iter().flat_map(|i| {
+                self.inner.data.iter().skip(i).step_by(self.m).copied().collect::<Vec<Self::Element>>()
+            }).collect()
     }
 }
 
@@ -619,18 +610,9 @@ impl<'a, T: Numeric + 'a> Matrix for DenseTransposeMut<'a, T> {
 
     fn into_vec(self) -> Vec<Self::Element> {
         (0..self.m)
-            .into_iter()
-            .map(|i| {
-                self.inner
-                    .data
-                    .iter()
-                    .skip(i)
-                    .step_by(self.m)
-                    .copied()
-                    .collect::<Vec<Self::Element>>()
-            })
-            .flatten()
-            .collect()
+            .into_iter().flat_map(|i| {
+                self.inner.data.iter().skip(i).step_by(self.m).copied().collect::<Vec<Self::Element>>()
+            }).collect()
     }
 }
 
