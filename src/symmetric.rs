@@ -80,7 +80,7 @@ impl<T: Numeric> Display for Symmetric<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         // closure to format each element
         let precision = f.precision().unwrap_or(2);
-        let format = |x: &T| format!("{:.*}", precision, x);
+        let format = |x: &T| format!("{x:.precision$}");
 
         // first run through to find the max length of each formatted element
         // elements are stored in a vec as we go
@@ -104,11 +104,11 @@ impl<T: Numeric> Display for Symmetric<T> {
                     s.push('\n')
                 }
 
-                format!("{}{:>width$}", s, x, width = max)
+                format!("{s}{x:>max$}")
             },
         );
 
-        write!(f, "{}", string)
+        write!(f, "{string}")
     }
 }
 
@@ -179,7 +179,7 @@ mod tests {
             6, 7, 8, 9
         ];
         let expected = "  0\n  1  2\n  3  4  5\n  6  7  8  9".to_string();
-        assert_eq!(expected, format!("{}", m));
+        assert_eq!(expected, format!("{m}"));
 
         let m = symmat![
             0.25;
@@ -190,7 +190,7 @@ mod tests {
 
         let expected =
             "  0.25\n  1.00  2.00\n  3.00  4.70  5.00\n  6.00  7.32  8.10  9.81".to_string();
-        assert_eq!(expected, format!("{}", m));
+        assert_eq!(expected, format!("{m}"));
     }
 
     mod ops {

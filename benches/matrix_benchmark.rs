@@ -1,8 +1,8 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-#[macro_use]
 use numb_rs::*;
+use numb_rs::matrix::RowOps;
 
-// https://godbolt.org is a useful tool for viewing assembly
+// https://godbolt.org for viewing assembly
 
 // 9.4987 ns
 fn row_swap_bench(c: &mut Criterion) {

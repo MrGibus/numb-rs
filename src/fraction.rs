@@ -22,7 +22,7 @@ pub const HALF: Fraction<u32> = Fraction {
 /// shorthand for creating u32 fractions
 macro_rules! frac32 {
     ($num:expr , $den:expr) => {
-        Fraction::new($num as u32, $den as u32);
+        Fraction::new($num as u32, $den as u32)
     };
 }
 
@@ -121,7 +121,7 @@ mod tests {
     #[test]
     fn display_test() {
         let a = frac32!(132, 203);
-        assert_eq!(format!("{}", a), "132/203".to_string())
+        assert_eq!(format!("{a}"), "132/203".to_string())
     }
 
     #[test]

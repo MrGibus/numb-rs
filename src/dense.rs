@@ -122,8 +122,7 @@ impl<T: Numeric> Display for Dense<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         // closure to format each element
         let precision = f.precision().unwrap_or(2);
-        let format = |x: &T| format!("{:.*}", precision, x);
-
+        let format = |x: &T| format!("{x:.precision$}");
         // first run through to find the max length of each formatted element
         // elements are stored in a vec as we go
         let mut strings: Vec<String> = vec![];
@@ -147,10 +146,10 @@ impl<T: Numeric> Display for Dense<T> {
                 if i % self.n == 0 && i != 0 {
                     s.push('\n')
                 }
-                format!("{}{:>width$}", s, x, width = max)
+                format!("{s}{x:>max$}")
             });
 
-        write!(f, "{}", string)
+        write!(f, "{string}")
     }
 }
 
@@ -560,15 +559,15 @@ impl ApproxEq<Dense<f64>> for Dense<f64> {
 #[derive(Debug)]
 pub struct DenseTranspose<'a, T: Numeric + 'a> {
     inner: &'a Dense<T>,
-    m: usize,
-    n: usize,
+    pub m: usize,
+    pub n: usize,
 }
 
 #[derive(Debug)]
 pub struct DenseTransposeMut<'a, T: Numeric + 'a> {
     inner: &'a mut Dense<T>,
-    m: usize,
-    n: usize,
+    pub m: usize,
+    pub n: usize,
 }
 
 impl<'a, T: Numeric + 'a> IntoTranspose<'a> for Dense<T> {
@@ -910,44 +909,44 @@ mod tests {
         ];
 
         assert_eq!(
-            format!("{}", i),
+            format!("{i}"),
             "  1  2  3\n  4  5  6\n  7  8  9".to_string()
         );
 
         let f = mat![
-            0.1, 2.34, 3.14;
+            0.1, 2.34, 3.4;
             4.05, -5.2, -6.84;
             7.999, 8.0023, 9.99
         ];
 
         assert_eq!(
-            format!("{:.3}", f),
-            "   0.100   2.340   3.140\n   4.050  -5.200  -6.840\n   7.999   8.002   9.990"
+            format!("{f:.3}"),
+            "   0.100   2.340   3.400\n   4.050  -5.200  -6.840\n   7.999   8.002   9.990"
                 .to_string()
         );
 
         assert_eq!(
-            format!("{}", f),
-            "   0.10   2.34   3.14\n   4.05  -5.20  -6.84\n   8.00   8.00   9.99".to_string()
+            format!("{f}"),
+            "   0.10   2.34   3.40\n   4.05  -5.20  -6.84\n   8.00   8.00   9.99".to_string()
         );
     }
 
     #[test]
     fn iters() {
         let a = mat![1, 2, 3; 4, 5, 6; 7, 8, 9];
-        a.into_iter().for_each(|x| println!("{:?}", x));
+        a.into_iter().for_each(|x| println!("{x:?}"));
 
         for x in &a {
-            println!("{:?}", x)
+            println!("{x:?}")
         }
 
-        a.into_iter().enumerate().for_each(|x| println!("{:?}", x));
+        a.into_iter().enumerate().for_each(|x| println!("{x:?}"));
         a.into_iter()
-            .for_each(|x| x.into_iter().for_each(|y| println!("{:?} {:?}", y, x)));
+            .for_each(|x| x.iter().for_each(|y| println!("{y:?} {x:?}")));
 
         a.into_iter().enumerate().for_each(|(i, row)| {
-            row.into_iter().enumerate().for_each(|(j, x)| {
-                println!("[{},{}] = {}", i, j, x);
+            row.iter().enumerate().for_each(|(j, x)| {
+                println!("[{i},{j}] = {x}");
             })
         });
     }
