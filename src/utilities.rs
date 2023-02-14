@@ -31,7 +31,7 @@ impl ApproxEq<f64> for f64 {
     left: `{:?}`
     right: `{:?}`
     delta: `{:?}`"#,
-                tolerance, &*self, &*other, delta
+                tolerance, self, other, delta
             )
         }
     }
@@ -52,7 +52,7 @@ impl ApproxEq<f32> for f32 {
     left: `{:?}`
     right: `{:?}`
     delta: `{:?}`"#,
-                tolerance, &*self, &*other, delta
+                tolerance, self, other, delta
             )
         }
     }
@@ -97,8 +97,9 @@ mod tests {
         let a: f32 = 0.0001;
         let b: f32 = 0.00011;
 
-        a.assert_approx_eq(&b, 0.00005);
-        assert_eq!(a.approx_eq(&b, 0.000009), false);
+
+        let _ = &a.assert_approx_eq(&b, 0.00005);
+        assert!(!a.approx_eq(&b, 0.000009));
     }
 
     #[test]
@@ -106,8 +107,10 @@ mod tests {
         let a = vec![1.0001, 1.0003, 1.00006];
         let b = vec![1.0001, 1.0003, 1.0001];
 
-        a.assert_approx_eq(&b, 0.00005);
-        assert_eq!(a.approx_eq(&b, 0.0001), false);
+
+        let _ = &a.assert_approx_eq(&b, 0.00005);
+        assert!(!a.approx_eq(&b, 0.0001));
+
     }
 
     #[test]

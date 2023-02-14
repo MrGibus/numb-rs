@@ -121,7 +121,7 @@ mod tests {
     #[test]
     fn display_test() {
         let a = frac32!(132, 203);
-        assert_eq!(format!("{}", a), "132/203".to_string())
+        assert_eq!(format!("{a}"), "132/203".to_string())
     }
 
     #[test]
