@@ -69,7 +69,6 @@ macro_rules! mat {
 }
 
 /// Creates a symmetrical matrix
-/// Note that the symmetrical matrix is of type MatrixS,
 /// The aim of this macro and associated struct is for saving space
 /// # example:
 /// ```
@@ -124,6 +123,7 @@ macro_rules! symmat {
         Symmetric{
             data: v,
             n: $n,
+            m: $n,
         }
     }}
 }

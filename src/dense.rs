@@ -3,11 +3,10 @@
 use crate::matrix::{Concatenate, IntoTranspose, IntoTransposeMut, Matrix, MatrixError, RowOps};
 use crate::numerics::Numeric;
 use crate::utilities::ApproxEq;
-use crate::MatrixT;
 use std::ops::{Index, IndexMut, Mul, MulAssign};
 
 use std::borrow::Cow;
-use std::fmt::{Debug, Display};
+use std::fmt::{Debug, Display, Formatter};
 
 /// a dense matrix stores all the values of the matrix
 /// a matrix is a vec with dimensional properties (m x n)
@@ -126,7 +125,7 @@ impl<T: Numeric> Display for Dense<T> {
         // first run through to find the max length of each formatted element
         // elements are stored in a vec as we go
         let mut strings: Vec<String> = vec![];
-        let max = self.data.iter().fold(0, |max: usize, x: &T| {
+        let max: usize = self.data.iter().fold(0, |max: usize, x: &T| {
             let s = format(x);
             let disp_len = s.len();
             strings.push(s);
@@ -217,20 +216,6 @@ impl<T: Numeric> Dense<T> {
         }
     }
 
-    /// this method returns self wrapped in a MatrixT struct to indicate that methods should index
-    /// the transpose of the struct it does not perform any matrix
-    #[deprecated]
-    pub fn t_old(&self) -> MatrixT<T> {
-        MatrixT {
-            /// a reference to the vector of the Matrix below
-            data: &self.data,
-            /// m is a reference to the 'n' column of the Matrix
-            m: &self.n,
-            /// n is a reference to the 'm' column of the Matrix
-            n: &self.m,
-        }
-    }
-
     pub fn concatenate_vec(self, other: &[T]) -> Result<Dense<T>, MatrixError> {
         match self.m == other.len() {
             true => {
@@ -259,6 +244,17 @@ impl<T: Numeric> std::convert::From<Vec<T>> for Dense<T> {
     }
 }
 
+impl<T: Numeric> std::convert::From<&[T]> for Dense<T> {
+    fn from(slice: &[T]) -> Self {
+        let n = slice.len();
+        Dense {
+            data: slice.to_vec(),
+            m: 1,
+            n,
+        }
+    }
+}
+
 pub trait IntoCol<T: Numeric> {
     fn into_col(self) -> Dense<T>;
 }
@@ -266,6 +262,12 @@ pub trait IntoCol<T: Numeric> {
 impl<T: Numeric> IntoCol<T> for Vec<T> {
     fn into_col(self) -> Dense<T> {
         Dense::col_from_vec(self)
+    }
+}
+
+impl<T: Numeric> IntoCol<T> for &[T] {
+    fn into_col(self) -> Dense<T> {
+        Dense::col_from_vec(self.to_vec())
     }
 }
 
@@ -304,7 +306,6 @@ impl<T: Numeric> Concatenate<Dense<T>, T> for Dense<T> {
                     Dense::with_capacity(self.data.capacity() + other.data.capacity());
                 new.n = self.n + other.n;
                 new.m = self.m;
-                // TODO: Vectorise this loop
 
                 // if we think of appending to a vector instead of a 2d array we might consider
                 // that we wish to add a row starting at 'i' in the vector and push values
@@ -368,129 +369,6 @@ impl<T: Numeric> Mul<T> for Dense<T> {
 impl<T: Numeric> MulAssign<T> for Dense<T> {
     fn mul_assign(&mut self, scalar: T) {
         self.data.iter_mut().for_each(|x| *x *= scalar)
-    }
-}
-
-/// Matrix multiplication returns the dot product
-/// The matrices must have dimensions such that mn * nk = mk
-/// This is a naive solution, there are more efficient computational methods tbd later
-impl<T: Numeric> Mul<Dense<T>> for Dense<T> {
-    type Output = Result<Self, MatrixError>;
-
-    fn mul(self, other: Self) -> Self::Output {
-        if self.n != other.m {
-            Err(MatrixError::Incompatibility)
-        } else {
-            let mut out: Dense<T> = Dense::with_capacity(self.m * other.n);
-            out.m = self.m;
-            out.n = other.n;
-
-            unsafe {
-                out.data.set_len(out.m * out.n);
-            }
-
-            for i in 0..out.m {
-                for j in 0..out.n {
-                    out[[i, j]] = T::ZERO;
-                    for k in 0..self.n {
-                        out[[i, j]] += self[[i, k]] * other[[k, j]]
-                    }
-                }
-            }
-            Ok(out)
-        }
-    }
-}
-
-/// TODO: Create a Macro for this
-/// There has to be an elegent way to do this, asking on SO will certainly flag duplicate questions
-/// so why even bother.
-/// - Macros don't really help (about same amount of code)
-/// - Can't use Borrow trait as it's a standard op and it always takes by value
-/// - Cow runs into a lot of errors
-/// 'type parameter `M` must be covered by another type when it appears before the first local type (`Dense<f64>`)'
-/// A DOT trait would be sensible?
-impl<T: Numeric> Mul<&Dense<T>> for Dense<T> {
-    type Output = Result<Self, MatrixError>;
-
-    fn mul(self, other: &Self) -> Self::Output {
-        if self.n != other.m {
-            Err(MatrixError::Incompatibility)
-        } else {
-            let mut out: Dense<T> = Dense::with_capacity(self.m * other.n);
-            out.m = self.m;
-            out.n = other.n;
-
-            unsafe {
-                out.data.set_len(out.m * out.n);
-            }
-
-            for i in 0..out.m {
-                for j in 0..out.n {
-                    out[[i, j]] = T::ZERO;
-                    for k in 0..self.n {
-                        out[[i, j]] += self[[i, k]] * other[[k, j]]
-                    }
-                }
-            }
-            Ok(out)
-        }
-    }
-}
-
-impl<T: Numeric> Mul<Dense<T>> for &Dense<T> {
-    type Output = Result<Dense<T>, MatrixError>;
-
-    fn mul(self, other: Dense<T>) -> Self::Output {
-        if self.n != other.m {
-            Err(MatrixError::Incompatibility)
-        } else {
-            let mut out: Dense<T> = Dense::with_capacity(self.m * other.n);
-            out.m = self.m;
-            out.n = other.n;
-
-            unsafe {
-                out.data.set_len(out.m * out.n);
-            }
-
-            for i in 0..out.m {
-                for j in 0..out.n {
-                    out[[i, j]] = T::ZERO;
-                    for k in 0..self.n {
-                        out[[i, j]] += self[[i, k]] * other[[k, j]]
-                    }
-                }
-            }
-            Ok(out)
-        }
-    }
-}
-
-impl<T: Numeric> Mul<&Dense<T>> for &Dense<T> {
-    type Output = Result<Dense<T>, MatrixError>;
-
-    fn mul(self, other: &Dense<T>) -> Self::Output {
-        if self.n != other.m {
-            Err(MatrixError::Incompatibility)
-        } else {
-            let mut out: Dense<T> = Dense::with_capacity(self.m * other.n);
-            out.m = self.m;
-            out.n = other.n;
-
-            unsafe {
-                out.data.set_len(out.m * out.n);
-            }
-
-            for i in 0..out.m {
-                for j in 0..out.n {
-                    out[[i, j]] = T::ZERO;
-                    for k in 0..self.n {
-                        out[[i, j]] += self[[i, k]] * other[[k, j]]
-                    }
-                }
-            }
-            Ok(out)
-        }
     }
 }
 
@@ -558,16 +436,100 @@ impl ApproxEq<Dense<f64>> for Dense<f64> {
 
 #[derive(Debug)]
 pub struct DenseTranspose<'a, T: Numeric + 'a> {
-    inner: &'a Dense<T>,
+    pub inner: &'a Dense<T>,
     pub m: usize,
     pub n: usize,
 }
 
 #[derive(Debug)]
 pub struct DenseTransposeMut<'a, T: Numeric + 'a> {
-    inner: &'a mut Dense<T>,
+    pub inner: &'a mut Dense<T>,
     pub m: usize,
     pub n: usize,
+}
+
+impl<'a, T: Numeric + 'a> Display for DenseTranspose<'a, T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let precision = f.precision().unwrap_or(2);
+        let format = |x: &T| format!("{:.*}", precision, x);
+
+        // Similar to Dense however we'll iterate over the starting items (0..self.m) and
+        // skip the previous starting values followed by a step by iterator to achieve the
+        // correct order
+        let mut strings: Vec<String> = vec![];
+        let max: usize = (0..self.m).into_iter().fold(0, |max, i| {
+            self.inner
+                .data
+                .iter()
+                .skip(i)
+                .step_by(self.m)
+                .fold(max, |submax, x| {
+                    let s = format(x);
+                    let disp_len = s.len();
+                    strings.push(s);
+                    if submax > disp_len {
+                        submax
+                    } else {
+                        disp_len
+                    }
+                })
+        }) + 2;
+
+        // exactly the same folding operation as the dense Display implementation
+        let string = strings
+            .iter()
+            .enumerate()
+            .fold("".to_string(), |mut s, (i, x)| {
+                if i % self.n == 0 && i != 0 {
+                    s.push('\n')
+                }
+                format!("{}{:>width$}", s, x, width = max)
+            });
+
+        write!(f, "{}", string)
+    }
+}
+
+impl<'a, T: Numeric + 'a> Display for DenseTransposeMut<'a, T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let precision = f.precision().unwrap_or(2);
+        let format = |x: &T| format!("{:.*}", precision, x);
+
+        // Similar to Dense however we'll iterate over the starting items (0..self.m) and
+        // skip the previous starting values followed by a step by iterator to achieve the
+        // correct order
+        let mut strings: Vec<String> = vec![];
+        let max: usize = (0..self.m).into_iter().fold(0, |max, i| {
+            self.inner
+                .data
+                .iter()
+                .skip(i)
+                .step_by(self.m)
+                .fold(max, |submax, x| {
+                    let s = format(x);
+                    let disp_len = s.len();
+                    strings.push(s);
+                    if submax > disp_len {
+                        submax
+                    } else {
+                        disp_len
+                    }
+                })
+        }) + 2;
+
+        // exactly the same folding operation as the dense Display implementation
+        let string = strings
+            .iter()
+            .enumerate()
+            .fold("".to_string(), |mut s, (i, x)| {
+                if i % self.n == 0 && i != 0 {
+                    s.push('\n')
+                }
+                format!("{}{:>width$}", s, x, width = max)
+            });
+
+        write!(f, "{}", string)
+    }
 }
 
 impl<'a, T: Numeric + 'a> IntoTranspose<'a> for Dense<T> {
@@ -586,8 +548,8 @@ impl<'a, T: Numeric + 'a> IntoTransposeMut<'a> for Dense<T> {
     type TransposeViewMut = DenseTransposeMut<'a, T>;
 
     fn t_mut(&'a mut self) -> Self::TransposeViewMut {
-        let n = self.n;
-        let m = self.m;
+        let m = self.n;
+        let n = self.m;
 
         DenseTransposeMut { inner: self, m, n }
     }
@@ -627,8 +589,10 @@ impl<'a, T: Numeric + 'a> Matrix for DenseTranspose<'a, T> {
     }
 
     fn into_vec(self) -> Vec<Self::Element> {
-        // TODO
-        unimplemented!()
+        (0..self.m)
+            .into_iter().flat_map(|i| {
+                self.inner.data.iter().skip(i).step_by(self.m).copied().collect::<Vec<Self::Element>>()
+            }).collect()
     }
 }
 
@@ -644,8 +608,10 @@ impl<'a, T: Numeric + 'a> Matrix for DenseTransposeMut<'a, T> {
     }
 
     fn into_vec(self) -> Vec<Self::Element> {
-        //TODO
-        unimplemented!()
+        (0..self.m)
+            .into_iter().flat_map(|i| {
+                self.inner.data.iter().skip(i).step_by(self.m).copied().collect::<Vec<Self::Element>>()
+            }).collect()
     }
 }
 
@@ -898,6 +864,26 @@ mod tests {
             assert!(c.is_err());
             assert_eq!(c.unwrap_err(), MatrixError::Incompatibility)
         }
+
+        #[test]
+        fn matrix_mul_t_m() {
+            let a = mat![1, 2, 3, 4; 5, 6, 7, 8];
+            let b = mat![7; 3];
+
+            let expected = mat![22; 32; 42; 52];
+            assert_eq!(expected, (&a.t() * &b).unwrap());
+            assert_eq!(expected, (a.t() * b).unwrap());
+        }
+
+        #[test]
+        fn matrix_mul_m_tmut() {
+            let a = mat![1, 2, 3, 4; 5, 6, 7, 8];
+            let mut b = mat![10, 9, 8, 7; 6, 5, 4, 3];
+
+            let expected = mat![80, 40; 216, 112];
+            assert_eq!(expected, (&a * &b.t()).unwrap());
+            assert_eq!(expected, (a * b.t_mut()).unwrap());
+        }
     }
 
     #[test]
@@ -929,6 +915,69 @@ mod tests {
             format!("{f}"),
             "   0.10   2.34   3.40\n   4.05  -5.20  -6.84\n   8.00   8.00   9.99".to_string()
         );
+    }
+
+    #[test]
+    fn transpose_print() {
+        let a = mat![0, 1, 2; 3, 4, 5; 6, 7, 8; 9, 10, 11];
+
+        assert_eq!(
+            format!("{}", a.t()),
+            "   0   3   6   9\n   1   4   7  10\n   2   5   8  11".to_string()
+        );
+
+        let f = mat![
+            0.1, 2.34, 3.14;
+            4.05, -5.2, -6.84;
+            7.999, 8.0023, 9.99
+        ];
+
+        assert_eq!(
+            format!("{:.3}", f.t()),
+            "   0.100   4.050   7.999\n   2.340  -5.200   8.002\n   3.140  -6.840   9.990"
+                .to_string()
+        );
+    }
+
+    #[test]
+    fn mut_trans_print() {
+        let mut a = mat![0, 1, 2; 3, 4, 5; 6, 7, 8; 9, 10, 11];
+
+        assert_eq!(
+            format!("{}", a.t_mut()),
+            "   0   3   6   9\n   1   4   7  10\n   2   5   8  11".to_string()
+        );
+
+        let mut f = mat![
+            0.1, 2.34, 3.14;
+            4.05, -5.2, -6.84;
+            7.999, 8.0023, 9.99
+        ];
+
+        let mut ft = f.t_mut();
+        ft[[0, 1]] = 7.083;
+
+        assert_eq!(
+            format!("{:.3}", ft),
+            "   0.100   7.083   7.999\n   2.340  -5.200   8.002\n   3.140  -6.840   9.990"
+                .to_string()
+        );
+    }
+
+    #[test]
+    fn transpose_into_vec() {
+        let a = mat![0, 1, 2; 3, 4, 5];
+        let v = a.t().into_vec();
+
+        assert_eq!(v, vec![0, 3, 1, 4, 2, 5])
+    }
+
+    #[test]
+    fn transposemut_into_vec() {
+        let mut a = mat![0, 1, 2; 3, 4, 5];
+        let v = a.t_mut().into_vec();
+
+        assert_eq!(v, vec![0, 3, 1, 4, 2, 5])
     }
 
     #[test]
