@@ -110,7 +110,8 @@ macro_rules! symmat {
 
         Symmetric{
         data: v,
-        n,
+        n: n,
+        m: n,
         }
     }};
     // fills an array with a value
